@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+requests
+deep-translator
+numpy
+datasets
+scikit-learn
+sentence-transformers
+transformers
+torch
+accelerate
+pydantic

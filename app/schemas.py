@@ -1,0 +1,57 @@
+# schemas.py
+from __future__ import annotations  # 최신 타입 힌트 문법 지원
+
+from pydantic import BaseModel  # 요청/응답 스키마 정의
+from pydantic import Field  # 리스트 기본값 정의
+
+
+class TopicItem(BaseModel):
+    title: str = ""
+    summary: str | None = None
+    url: str = ""
+    source: str | None = None
+    document_type: str | None = None
+    semantic_score: float | None = None
+    keyword_boost: float | None = None
+    hybrid_score: float | None = None
+    reranked_by: str | None = None
+
+
+class SearchMeta(BaseModel):
+    detected_language: str | None = None
+    internal_query: str | None = None
+    normalized_query: str | None = None
+    normalize_method: str | None = None
+    normalize_score: float | None = None
+    predicted_label: str | None = None
+    model_confidence: float | None = None
+    search_query: str | None = None
+    is_error: bool | None = None
+    error_code: str | None = None
+
+
+class SearchGuidance(BaseModel):
+    notice: str
+    triage_level: str
+    triage_message: str
+    question_suggestions: list[str] = Field(default_factory=list)
+
+
+class SearchResultsBundle(BaseModel):
+    top_result: TopicItem | None = None
+    results: list[TopicItem] = Field(default_factory=list)
+    related_topics: list[TopicItem] = Field(default_factory=list)
+    ai_summary: str | None = None
+    ai_summary_model: str | None = None
+
+
+class SearchResponse(BaseModel):
+    query: str
+    meta: SearchMeta
+    guidance: SearchGuidance
+    results_bundle: SearchResultsBundle
+    message: str | None = None
+
+
+class HealthResponse(BaseModel):
+    status: str
