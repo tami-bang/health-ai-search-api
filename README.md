@@ -1,6 +1,7 @@
 # 🩺 Health AI Search API
 
-증상 기반 질의를 처리하는 AI 검색 API  
+증상 기반 자연어 입력을 의료 정보로 변환하고,  
+외부 데이터 + 내부 지식 + AI 재정렬을 통해 최적의 결과를 제공하는 헬스케어 AI 검색 API
 A FastAPI-based healthcare AI search API for symptom-driven queries
 
 ---
@@ -146,6 +147,12 @@ http://127.0.0.1:8000/docs
 
 ## 📡 API Example
 
+### Description
+
+```
+증상 입력 → 검색 → AI 재정렬 → 최종 응답까지 단일 API에서 처리
+```
+
 ### Request
 
 ```http
@@ -169,11 +176,29 @@ POST /search?query=감기
 
 ## 💡 Design Focus
 
-- External + Internal + Vector 기반 Hybrid Retrieval 구조
-- AI 기반 결과 재정렬 Reranking Pipeline
-- Enrichment + Formatter 분리로 응답 품질 개선
-- LLM 확장 가능한 AI 아키텍처 설계
-- Rule 기반 triage로 의료 응답 안전성 보완
+- External + Internal + Vector 기반 Hybrid Retrieval 구조  
+  → 외부 API 의존도를 낮추고 검색 품질을 안정화하기 위해 설계
+
+- AI 기반 결과 재정렬 Reranking Pipeline  
+  → 단순 키워드 검색의 한계를 보완하기 위해 적용
+
+- Enrichment + Formatter 분리  
+  → 응답 품질과 유지보수성을 동시에 확보
+
+- LLM 확장 가능한 AI 아키텍처  
+  → 향후 생성형 응답까지 확장 가능하도록 설계
+
+- Rule 기반 triage  
+  → 의료 응답의 안전성을 확보하기 위한 최소한의 방어 로직
+
+---
+
+## 🧠 What I Solved
+
+- 자연어 증상 입력과 실제 의료 정보 간의 불일치 문제 해결
+- 외부 API 결과의 품질 편차를 AI reranking으로 보완
+- 다국어 입력/출력 처리 파이프라인 구축
+- 단일 API에서 end-to-end 처리 구조 설계
 
 ---
 
