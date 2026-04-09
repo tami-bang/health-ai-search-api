@@ -64,6 +64,20 @@ RAG_CHUNK_OVERLAP = int(os.getenv("RAG_CHUNK_OVERLAP", "80"))
 RAG_INTERNAL_TOP_K = int(os.getenv("RAG_INTERNAL_TOP_K", "4"))
 RAG_MIN_SCORE = float(os.getenv("RAG_MIN_SCORE", "0.35"))
 
+# rerank 성능 제어
+RERANK_CANDIDATE_LIMIT = int(os.getenv("RERANK_CANDIDATE_LIMIT", "12"))
+
+# 검색 병렬 처리 설정
+RETRIEVAL_MAX_WORKERS = int(os.getenv("RETRIEVAL_MAX_WORKERS", "6"))
+
+# 질문 추천 설정
+QUESTION_SUGGESTION_PER_SYMPTOM_LIMIT = int(
+    os.getenv("QUESTION_SUGGESTION_PER_SYMPTOM_LIMIT", "2"),
+)
+QUESTION_SUGGESTION_TOTAL_LIMIT = int(
+    os.getenv("QUESTION_SUGGESTION_TOTAL_LIMIT", "4"),
+)
+
 # 내부 지식 파일 경로
 INTERNAL_KNOWLEDGE_JSON_PATH = os.getenv(
     "INTERNAL_KNOWLEDGE_JSON_PATH",

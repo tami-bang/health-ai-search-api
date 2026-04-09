@@ -85,6 +85,7 @@ def build_metrics_status() -> dict[str, Any]:
         },
         "model_runtime": {
             "active_backend": model_status.get("active_backend"),
+            "active_model_version": model_status.get("active_model_version"),
             "preferred_backend": model_status.get("preferred_backend"),
         },
         "external_cache": get_medlineplus_cache_stats(),

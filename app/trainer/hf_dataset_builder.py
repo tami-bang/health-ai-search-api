@@ -1,4 +1,4 @@
-# trainer/hf_dataset_builder.py
+# app/trainer/hf_dataset_builder.py
 from __future__ import annotations  # 최신 타입 힌트 문법 지원
 
 from typing import Any  # 타입 힌트 보조
@@ -10,6 +10,7 @@ from app.trainer.dataset_loader import load_training_rows  # 전처리된 학습
 
 def build_label_maps(rows: list[dict[str, str]]) -> tuple[dict[str, int], dict[int, str]]:
     unique_labels = sorted({str(row["label_text"]) for row in rows})
+
     label_to_id = {
         label: index
         for index, label in enumerate(unique_labels)
@@ -18,6 +19,7 @@ def build_label_maps(rows: list[dict[str, str]]) -> tuple[dict[str, int], dict[i
         index: label
         for label, index in label_to_id.items()
     }
+
     return label_to_id, id_to_label
 
 

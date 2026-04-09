@@ -1,4 +1,4 @@
-# trainer/hf_train_symptom_classifier.py
+# app/trainer/hf_train_symptom_classifier.py
 from __future__ import annotations  # 최신 타입 힌트 문법 지원
 
 import json  # 메타데이터 저장
@@ -7,18 +7,18 @@ from datetime import datetime  # 저장 시각 기록
 from pathlib import Path  # 파일 경로 처리
 from typing import Any  # 타입 힌트 보조
 
-import numpy as np  # metric 계산 보조
+import numpy as np  # 예측 argmax 계산
 from sklearn.metrics import accuracy_score  # 정확도 계산
-from sklearn.metrics import f1_score  # F1 점수 계산
+from sklearn.metrics import f1_score  # F1 계산
 
 from app.core.logging_config import configure_logging  # 공통 로그 초기화
 from app.core.settings import ARTIFACTS_DIR  # 아티팩트 루트 경로
 from app.core.settings import HF_CLASSIFIER_ARTIFACT_DIR  # HF 분류기 저장 경로
-from app.core.settings import HF_CLASSIFIER_BASE_MODEL_NAME  # 학습 시작 base model
+from app.core.settings import HF_CLASSIFIER_BASE_MODEL_NAME  # HF 베이스 모델명
 from app.core.settings import HF_CLASSIFIER_BATCH_SIZE  # 배치 크기
-from app.core.settings import HF_CLASSIFIER_LEARNING_RATE  # 러닝레이트
+from app.core.settings import HF_CLASSIFIER_LEARNING_RATE  # 학습률
 from app.core.settings import HF_CLASSIFIER_MAX_LENGTH  # 토큰 길이 제한
-from app.core.settings import HF_CLASSIFIER_METADATA_PATH  # HF 메타데이터 저장 경로
+from app.core.settings import HF_CLASSIFIER_METADATA_PATH  # 메타데이터 경로
 from app.core.settings import HF_CLASSIFIER_MODEL_VERSION  # HF 모델 버전
 from app.core.settings import HF_CLASSIFIER_NUM_EPOCHS  # 학습 epoch 수
 from app.core.settings import TRAINING_DATASET_NAME  # 데이터셋 이름
@@ -36,7 +36,7 @@ def _ensure_artifact_dir() -> None:
     Path(HF_CLASSIFIER_ARTIFACT_DIR).mkdir(parents=True, exist_ok=True)
 
 
-def _tokenize_dataset(dataset, tokenizer):
+def _tokenize_dataset(dataset: Any, tokenizer: Any) -> Any:
     def tokenize_batch(batch: dict[str, list[str]]) -> dict[str, Any]:
         return tokenizer(
             batch["text"],
@@ -48,7 +48,7 @@ def _tokenize_dataset(dataset, tokenizer):
 
 
 def _build_compute_metrics():
-    def compute_metrics(eval_prediction) -> dict[str, float]:
+    def compute_metrics(eval_prediction: Any) -> dict[str, float]:
         logits, labels = eval_prediction
         predictions = np.argmax(logits, axis=-1)
 
@@ -95,12 +95,12 @@ def _save_metadata(
 
 
 def main() -> None:
-    import torch  # GPU 사용 확인
+    import torch  # GPU 사용 여부 확인
     from transformers import AutoModelForSequenceClassification  # HF 분류 모델 로드
     from transformers import AutoTokenizer  # HF 토크나이저 로드
-    from transformers import DataCollatorWithPadding  # 배치 패딩 처리
-    from transformers import Trainer  # 학습 실행
-    from transformers import TrainingArguments  # 학습 파라미터 정의
+    from transformers import DataCollatorWithPadding  # 동적 패딩 처리
+    from transformers import Trainer  # 학습 실행기
+    from transformers import TrainingArguments  # 학습 파라미터 설정
 
     _ensure_artifact_dir()
 
@@ -132,8 +132,10 @@ def main() -> None:
         per_device_eval_batch_size=HF_CLASSIFIER_BATCH_SIZE,
         learning_rate=HF_CLASSIFIER_LEARNING_RATE,
         seed=TRAINING_RANDOM_STATE,
+        report_to="none",
     )
 
+    # transformers 버전 호환 때문에 tokenizer 인자는 제거
     trainer = Trainer(
         model=model,
         args=training_args,

@@ -2,7 +2,7 @@
 from __future__ import annotations  # 최신 타입 힌트 문법 지원
 
 from pydantic import BaseModel  # 요청/응답 스키마 정의
-from pydantic import Field  # 리스트 기본값 정의
+from pydantic import Field  # 리스트 기본값 정의, 필드 제약 조건 정의
 
 
 class TopicItem(BaseModel):
@@ -55,3 +55,25 @@ class SearchResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str
+
+class SearchRequest(BaseModel):
+    query: str = Field(..., min_length=2, description="증상 질의")
+    include_summary: bool = Field(False, description="AI 요약 포함 여부")
+
+
+class TriageRequest(BaseModel):
+    query: str = Field(
+        ...,
+        min_length=2,
+        description="사용자 증상 또는 상태 입력",
+        examples=["숨이 안 쉬어져요"],
+    )
+
+
+class TriageResponse(BaseModel):
+    query: str
+    detected_language: str
+    triage_level: str
+    triage_message: str
+    triage_score: int
+    matched_patterns: list[str]

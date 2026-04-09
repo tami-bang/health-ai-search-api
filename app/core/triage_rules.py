@@ -5,71 +5,117 @@ TRIAGE_LEVEL_RED = "red"
 TRIAGE_LEVEL_YELLOW = "yellow"
 TRIAGE_LEVEL_GREEN = "green"
 
-TRIAGE_MESSAGE_MAP: dict[str, str] = {
-    TRIAGE_LEVEL_RED: (
-        "Urgent warning signs are present. Seek immediate medical attention or emergency evaluation."
-    ),
-    TRIAGE_LEVEL_YELLOW: (
-        "Some symptoms may need prompt medical review depending on severity, duration, or underlying conditions."
-    ),
-    TRIAGE_LEVEL_GREEN: (
-        "This information may help with general understanding, but symptoms should still be monitored carefully."
-    ),
+TRIAGE_SUPPORTED_LANGUAGES = {"ko", "en"}
+TRIAGE_DEFAULT_LANGUAGE = "en"
+
+TRIAGE_MESSAGE_MAP_BY_LANGUAGE: dict[str, dict[str, str]] = {
+    "ko": {
+        TRIAGE_LEVEL_RED: (
+            "즉시 의료진 평가가 필요할 수 있는 위험 신호가 있습니다. "
+            "응급실 또는 가까운 의료기관에 바로 문의하세요."
+        ),
+        TRIAGE_LEVEL_YELLOW: (
+            "증상의 정도나 지속 시간에 따라 빠른 진료 검토가 필요할 수 있습니다. "
+            "가능하면 이른 시간 안에 의료진 상담을 고려하세요."
+        ),
+        TRIAGE_LEVEL_GREEN: (
+            "현재 정보는 일반적인 참고용입니다. "
+            "증상이 지속되거나 악화되면 의료진 상담이 필요할 수 있습니다."
+        ),
+    },
+    "en": {
+        TRIAGE_LEVEL_RED: (
+            "Urgent warning signs are present. Seek immediate medical attention or emergency evaluation."
+        ),
+        TRIAGE_LEVEL_YELLOW: (
+            "Some symptoms may need prompt medical review depending on severity, duration, or underlying conditions."
+        ),
+        TRIAGE_LEVEL_GREEN: (
+            "This information may help with general understanding, but symptoms should still be monitored carefully."
+        ),
+    },
 }
 
-# 확장 포인트:
-# - 단순 substring 매칭을 넘어서 점수 기반으로 유지
-# - 나중에 age / duration / chronic disease / medication history 룰을 같은 구조로 추가 가능
 TRIAGE_SCORE_THRESHOLDS: dict[str, int] = {
     TRIAGE_LEVEL_RED: 4,
     TRIAGE_LEVEL_YELLOW: 2,
 }
 
-# 카테고리별로 나눠두면 유지보수 시 특정 도메인 룰만 수정 가능하다.
 TRIAGE_RULE_GROUPS: dict[str, dict[str, list[dict[str, object]]]] = {
     "ko": {
         "respiratory_red_flags": [
             {"pattern": "호흡곤란", "score": 4},
             {"pattern": "숨이 차", "score": 4},
+            {"pattern": "숨차", "score": 4},
             {"pattern": "숨쉬기 힘들", "score": 4},
             {"pattern": "숨을 못 쉬", "score": 4},
+            {"pattern": "숨이 안 쉬어", "score": 4},
+            {"pattern": "숨이 안 쉬어져", "score": 4},
+            {"pattern": "숨이 안 쉬어져요", "score": 4},
+            {"pattern": "숨을 쉴 수 없", "score": 4},
+            {"pattern": "호흡이 힘들", "score": 4},
+            {"pattern": "호흡이 어려", "score": 4},
+            {"pattern": "숨막", "score": 4},
         ],
         "neuro_red_flags": [
             {"pattern": "의식", "score": 4},
+            {"pattern": "의식이 흐려", "score": 4},
+            {"pattern": "정신이 혼미", "score": 4},
             {"pattern": "경련", "score": 4},
             {"pattern": "마비", "score": 4},
             {"pattern": "말이 어눌", "score": 4},
+            {"pattern": "말이 잘 안 나와", "score": 4},
             {"pattern": "심한 두통", "score": 3},
             {"pattern": "극심한 두통", "score": 4},
         ],
         "cardio_red_flags": [
             {"pattern": "흉통", "score": 4},
             {"pattern": "가슴 통증", "score": 4},
+            {"pattern": "가슴이 아파", "score": 4},
+            {"pattern": "가슴이 너무 아파", "score": 4},
+            {"pattern": "가슴이 심하게 아파", "score": 4},
+            {"pattern": "가슴이 조여", "score": 4},
+            {"pattern": "가슴이 답답", "score": 3},
         ],
         "bleeding_red_flags": [
             {"pattern": "피를 토", "score": 4},
+            {"pattern": "토혈", "score": 4},
+            {"pattern": "객혈", "score": 4},
             {"pattern": "혈변", "score": 4},
+            {"pattern": "검은 변", "score": 4},
         ],
         "trauma_red_flags": [
             {"pattern": "머리 다친", "score": 4},
             {"pattern": "머리 부딪", "score": 4},
             {"pattern": "머리 외상", "score": 4},
+            {"pattern": "넘어져서 머리", "score": 4},
         ],
         "dehydration_warning": [
             {"pattern": "심한 탈수", "score": 3},
             {"pattern": "탈수", "score": 2},
+            {"pattern": "소변이 안 나와", "score": 2},
+            {"pattern": "입이 너무 마", "score": 2},
         ],
         "gastro_warning": [
             {"pattern": "반복 구토", "score": 3},
+            {"pattern": "계속 토", "score": 2},
+            {"pattern": "토해", "score": 1},
             {"pattern": "구토", "score": 1},
             {"pattern": "설사", "score": 1},
             {"pattern": "복통", "score": 1},
+            {"pattern": "배가 아파", "score": 1},
+            {"pattern": "배가 계속 아파", "score": 2},
+            {"pattern": "배가 너무 아파", "score": 2},
         ],
         "fever_warning": [
             {"pattern": "열이 계속", "score": 2},
+            {"pattern": "열이 계속 나", "score": 2},
+            {"pattern": "열이 이틀째", "score": 2},
+            {"pattern": "열이 며칠째", "score": 2},
             {"pattern": "지속되는 열", "score": 2},
             {"pattern": "발열", "score": 1},
             {"pattern": "고열", "score": 2},
+            {"pattern": "열이 나", "score": 1},
         ],
         "progression_warning": [
             {"pattern": "악화", "score": 2},
@@ -82,10 +128,13 @@ TRIAGE_RULE_GROUPS: dict[str, dict[str, list[dict[str, object]]]] = {
             {"pattern": "shortness of breath", "score": 4},
             {"pattern": "trouble breathing", "score": 4},
             {"pattern": "can't breathe", "score": 4},
+            {"pattern": "cannot breathe", "score": 4},
+            {"pattern": "difficulty breathing", "score": 4},
         ],
         "neuro_red_flags": [
             {"pattern": "seizure", "score": 4},
             {"pattern": "confusion", "score": 4},
+            {"pattern": "altered mental status", "score": 4},
             {"pattern": "weakness on one side", "score": 4},
             {"pattern": "severe headache", "score": 3},
             {"pattern": "can't wake", "score": 4},
@@ -94,10 +143,14 @@ TRIAGE_RULE_GROUPS: dict[str, dict[str, list[dict[str, object]]]] = {
         ],
         "cardio_red_flags": [
             {"pattern": "chest pain", "score": 4},
+            {"pattern": "severe chest pain", "score": 4},
+            {"pattern": "tight chest", "score": 4},
         ],
         "bleeding_red_flags": [
             {"pattern": "coughing blood", "score": 4},
+            {"pattern": "vomiting blood", "score": 4},
             {"pattern": "bloody stool", "score": 4},
+            {"pattern": "black stool", "score": 4},
         ],
         "trauma_red_flags": [
             {"pattern": "head injury", "score": 4},
@@ -107,17 +160,23 @@ TRIAGE_RULE_GROUPS: dict[str, dict[str, list[dict[str, object]]]] = {
         "dehydration_warning": [
             {"pattern": "severe dehydration", "score": 3},
             {"pattern": "dehydration", "score": 2},
+            {"pattern": "not urinating", "score": 2},
         ],
         "gastro_warning": [
             {"pattern": "repeated vomiting", "score": 3},
+            {"pattern": "persistent vomiting", "score": 3},
             {"pattern": "vomiting", "score": 1},
             {"pattern": "diarrhea", "score": 1},
             {"pattern": "abdominal pain", "score": 1},
+            {"pattern": "stomach pain", "score": 1},
+            {"pattern": "ongoing abdominal pain", "score": 2},
         ],
         "fever_warning": [
             {"pattern": "persistent fever", "score": 2},
             {"pattern": "high fever", "score": 2},
             {"pattern": "fever", "score": 1},
+            {"pattern": "fever for two days", "score": 2},
+            {"pattern": "fever for several days", "score": 2},
         ],
         "progression_warning": [
             {"pattern": "getting worse", "score": 2},

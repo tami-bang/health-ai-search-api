@@ -1,6 +1,7 @@
 # internal_vector_store.py
 from __future__ import annotations  # 최신 타입 힌트 문법 지원
 
+from functools import lru_cache  # query embedding 캐시
 from typing import Any  # dict 타입 힌트 보조
 
 import numpy as np  # 벡터 유사도 계산
@@ -15,6 +16,7 @@ from app.services.chunker import chunk_text  # 문서 chunking
 
 _VECTOR_ROWS: list[dict[str, Any]] = []
 _VECTOR_MATRIX: np.ndarray | None = None
+
 
 def _build_chunk_rows() -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
@@ -51,6 +53,7 @@ def _build_chunk_rows() -> list[dict[str, Any]]:
 
     return rows
 
+
 def build_internal_vector_index() -> None:
     global _VECTOR_ROWS, _VECTOR_MATRIX
 
@@ -72,8 +75,20 @@ def build_internal_vector_index() -> None:
     _VECTOR_ROWS = rows
     _VECTOR_MATRIX = matrix
 
+
 def is_vector_index_ready() -> bool:
     return _VECTOR_MATRIX is not None and len(_VECTOR_ROWS) > 0
+
+
+@lru_cache(maxsize=256)
+def _encode_query_embedding(query: str) -> np.ndarray:
+    model = get_embedding_model()
+    return model.encode(
+        [query],
+        convert_to_numpy=True,
+        normalize_embeddings=True,
+    )[0]
+
 
 def search_internal_knowledge(
     query: str,
@@ -87,13 +102,7 @@ def search_internal_knowledge(
     if _VECTOR_MATRIX is None or not _VECTOR_ROWS:
         return []
 
-    model = get_embedding_model()
-    query_embedding = model.encode(
-        [cleaned_query],
-        convert_to_numpy=True,
-        normalize_embeddings=True,
-    )[0]
-
+    query_embedding = _encode_query_embedding(cleaned_query)
     scores = np.dot(_VECTOR_MATRIX, query_embedding)
 
     ranked_indices = np.argsort(scores)[::-1]
@@ -111,7 +120,6 @@ def search_internal_knowledge(
         row = dict(_VECTOR_ROWS[int(index)])
         document_id = str(row.get("document_id") or "")
 
-        # 같은 문서 chunk가 연속으로 많이 뜨면 결과 다양성이 떨어져서 문서 단위로 먼저 dedupe
         if document_id in seen_document_ids:
             continue
 

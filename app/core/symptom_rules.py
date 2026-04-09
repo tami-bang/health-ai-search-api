@@ -12,6 +12,17 @@ NORMALIZER_ML_CONFIDENCE_THRESHOLD = 0.60
 AI_FALLBACK_MIN_TOKEN_COUNT = 3
 AI_FALLBACK_MIN_CONFIDENCE = 0.35
 
+# meta에 predicted_label을 노출할 최소 confidence
+# 너무 낮은 예측값은 내부 참고만 하고 사용자 응답에는 숨긴다.
+PREDICTED_LABEL_DISPLAY_MIN_CONFIDENCE = 0.20
+
+# 복합 증상 normalized_query 구분자
+# "abdominal pain" 같은 canonical phrase와 충돌하지 않도록 공백 대신 명시적 구분자를 쓴다.
+NORMALIZED_QUERY_SEPARATOR = " | "
+
+# 한 번에 너무 많은 증상을 싣지 않도록 상한을 둔다.
+MAX_NORMALIZED_SYMPTOMS = 3
+
 # 증상별 검색 확장 키워드
 # 확장 포인트:
 # - 실제 검색 품질이 안 좋은 증상만 여기 추가하면 됨

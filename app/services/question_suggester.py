@@ -1,6 +1,10 @@
 # question_suggester.py
 from __future__ import annotations  # 최신 타입 힌트 문법 지원
 
+from app.core.settings import QUESTION_SUGGESTION_PER_SYMPTOM_LIMIT  # 증상별 추천 개수 제한
+from app.core.settings import QUESTION_SUGGESTION_TOTAL_LIMIT  # 전체 추천 개수 제한
+from app.core.symptom_rules import NORMALIZED_QUERY_SEPARATOR  # 복합 증상 구분자
+
 
 QUESTION_SUGGESTION_MAP: dict[str, dict[str, list[str]]] = {
     "fever": {
@@ -63,6 +67,90 @@ QUESTION_SUGGESTION_MAP: dict[str, dict[str, list[str]]] = {
             "기침의 흔한 원인은 무엇인가요?",
         ],
     },
+    "abdominal pain": {
+        "en": [
+            "What warning signs with abdominal pain need urgent care?",
+            "What conditions can cause abdominal pain?",
+            "When should abdominal pain be checked by a doctor?",
+        ],
+        "ko": [
+            "복통과 함께 응급으로 봐야 하는 증상은 무엇인가요?",
+            "복통의 흔한 원인은 무엇인가요?",
+            "복통이 있을 때 언제 병원 진료가 필요한가요?",
+        ],
+    },
+    "sore throat": {
+        "en": [
+            "When is a sore throat more serious than a common cold?",
+            "What symptoms with sore throat need medical review?",
+            "How can I manage sore throat at home?",
+        ],
+        "ko": [
+            "목 통증이 감기보다 더 심각할 수 있는 경우는 언제인가요?",
+            "목 통증과 함께 진료가 필요한 증상은 무엇인가요?",
+            "집에서 목 통증을 관리하는 방법은 무엇인가요?",
+        ],
+    },
+    "nausea": {
+        "en": [
+            "When is nausea a warning sign?",
+            "What symptoms with nausea need medical review?",
+            "What are common causes of nausea?",
+        ],
+        "ko": [
+            "메스꺼움이 위험 신호일 수 있는 경우는 언제인가요?",
+            "메스꺼움과 함께 진료가 필요한 증상은 무엇인가요?",
+            "메스꺼움의 흔한 원인은 무엇인가요?",
+        ],
+    },
+    "runny nose": {
+        "en": [
+            "When is a runny nose part of a cold versus allergy?",
+            "What symptoms with runny nose need medical review?",
+            "How can I manage a runny nose at home?",
+        ],
+        "ko": [
+            "콧물이 감기와 알레르기 중 어느 쪽에 더 가까운지 어떻게 보나요?",
+            "콧물과 함께 진료가 필요한 증상은 무엇인가요?",
+            "집에서 콧물을 관리하는 방법은 무엇인가요?",
+        ],
+    },
+}
+
+
+def _sorted_combination_key(*symptoms: str) -> tuple[str, ...]:
+    return tuple(sorted(
+        str(symptom).strip().lower()
+        for symptom in symptoms
+        if str(symptom).strip()
+    ))
+
+
+COMBINATION_QUESTION_SUGGESTIONS: dict[tuple[str, ...], dict[str, list[str]]] = {
+    _sorted_combination_key("fever", "cough"): {
+        "en": [
+            "Could fever and cough suggest flu or another respiratory infection?",
+            "What symptoms with fever and cough need urgent care?",
+            "When should I see a doctor for fever and cough together?",
+        ],
+        "ko": [
+            "발열과 기침이 함께 있을 때 독감이나 호흡기 감염을 의심할 수 있나요?",
+            "발열과 기침이 함께 있을 때 응급으로 봐야 하는 증상은 무엇인가요?",
+            "발열과 기침이 같이 있을 때 언제 진료를 받아야 하나요?",
+        ],
+    },
+    _sorted_combination_key("abdominal pain", "diarrhea"): {
+        "en": [
+            "Could abdominal pain and diarrhea suggest gastroenteritis or food-related illness?",
+            "What symptoms with abdominal pain and diarrhea need urgent care?",
+            "How do I watch for dehydration with abdominal pain and diarrhea?",
+        ],
+        "ko": [
+            "복통과 설사가 함께 있을 때 위장염이나 음식 관련 문제를 의심할 수 있나요?",
+            "복통과 설사가 같이 있을 때 응급으로 봐야 하는 증상은 무엇인가요?",
+            "복통과 설사가 함께 있을 때 탈수는 어떻게 확인하나요?",
+        ],
+    },
 }
 
 
@@ -80,17 +168,86 @@ DEFAULT_QUESTION_SUGGESTIONS: dict[str, list[str]] = {
 }
 
 
+def _parse_normalized_symptoms(normalized_query: str) -> list[str]:
+    cleaned_query = (normalized_query or "").strip()
+    if not cleaned_query:
+        return []
+
+    if NORMALIZED_QUERY_SEPARATOR not in cleaned_query:
+        return [cleaned_query.lower()]
+
+    return [
+        symptom.strip().lower()
+        for symptom in cleaned_query.split(NORMALIZED_QUERY_SEPARATOR)
+        if symptom and symptom.strip()
+    ]
+
+
+def _build_combination_key(symptom_keys: list[str]) -> tuple[str, ...]:
+    return _sorted_combination_key(*symptom_keys)
+
+
+def _append_unique_suggestions(
+    target: list[str],
+    seen_suggestions: set[str],
+    suggestions: list[str],
+    limit: int,
+) -> None:
+    for suggestion in suggestions:
+        if suggestion in seen_suggestions:
+            continue
+
+        seen_suggestions.add(suggestion)
+        target.append(suggestion)
+
+        if len(target) >= limit:
+            return
+
+
 def build_question_suggestions(
     normalized_query: str,
     detected_language: str,
 ) -> list[str]:
     language = "ko" if detected_language == "ko" else "en"
-    symptom_key = (normalized_query or "").strip().lower()
+    symptom_keys = _parse_normalized_symptoms(normalized_query)
 
-    mapped = QUESTION_SUGGESTION_MAP.get(symptom_key, {})
-    suggestions = mapped.get(language)
+    if not symptom_keys:
+        return DEFAULT_QUESTION_SUGGESTIONS[language]
 
-    if suggestions:
-        return suggestions
+    merged_suggestions: list[str] = []
+    seen_suggestions: set[str] = set()
+
+    combination_key = _build_combination_key(symptom_keys)
+    combination_suggestions = COMBINATION_QUESTION_SUGGESTIONS.get(
+        combination_key,
+        {},
+    ).get(language, [])
+
+    _append_unique_suggestions(
+        target=merged_suggestions,
+        seen_suggestions=seen_suggestions,
+        suggestions=combination_suggestions,
+        limit=QUESTION_SUGGESTION_TOTAL_LIMIT,
+    )
+
+    if len(merged_suggestions) >= QUESTION_SUGGESTION_TOTAL_LIMIT:
+        return merged_suggestions
+
+    for symptom_key in symptom_keys:
+        mapped = QUESTION_SUGGESTION_MAP.get(symptom_key, {})
+        symptom_suggestions = mapped.get(language, [])
+
+        _append_unique_suggestions(
+            target=merged_suggestions,
+            seen_suggestions=seen_suggestions,
+            suggestions=symptom_suggestions[:QUESTION_SUGGESTION_PER_SYMPTOM_LIMIT],
+            limit=QUESTION_SUGGESTION_TOTAL_LIMIT,
+        )
+
+        if len(merged_suggestions) >= QUESTION_SUGGESTION_TOTAL_LIMIT:
+            return merged_suggestions
+
+    if merged_suggestions:
+        return merged_suggestions
 
     return DEFAULT_QUESTION_SUGGESTIONS[language]
