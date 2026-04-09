@@ -1,44 +1,46 @@
-# symptom_search_service.py
 # app/services/symptom_search_service.py
-from __future__ import annotations  # 최신 타입 힌트 문법 지원
+from __future__ import annotations  # 용도: 최신 타입 힌트 문법 지원
 
-import logging  # 서비스 로그 기록
-import re  # summary 후처리용 정규식 처리
-import time  # 처리 시간 측정
-from dataclasses import dataclass  # triage 결과 내부 표준화
-from typing import Any  # 타입 힌트 보조
+import logging  # 용도: 서비스 로그 기록
+import re  # 용도: summary 후처리용 정규식 처리
+import time  # 용도: 처리 시간 측정
+from dataclasses import dataclass  # 용도: triage 결과 내부 표준화
+from typing import Any  # 용도: 타입 힌트 보조
 
-from app.core.error_codes import INTERNAL_SERVER_ERROR  # 공통 서버 에러 코드
-from app.core.error_codes import NO_RESULTS  # 검색 결과 없음 에러 코드
-from app.core.exceptions import AppException  # 앱 공통 예외
-from app.core.settings import DEFAULT_INCLUDE_SUMMARY  # 기본 요약 포함 여부
-from app.core.settings import ENABLE_STARTUP_WARMUP  # 시작 시 워밍업 여부
-from app.core.settings import ENABLE_TRIAGE  # 응급도 기능 사용 여부
-from app.core.settings import HF_GENERATION_MODEL_NAME  # 생성 모델명 기록
-from app.core.settings import RERANK_CANDIDATE_LIMIT  # rerank 후보 상한
-from app.core.settings import SUMMARY_MODEL_PRELOAD  # 생성 모델 preload 여부
-from app.core.symptom_rules import AI_FALLBACK_MIN_CONFIDENCE  # AI fallback 기준
-from app.core.symptom_rules import AI_FALLBACK_MIN_TOKEN_COUNT  # AI 예측 최소 토큰 수
-from app.core.symptom_rules import NORMALIZED_QUERY_SEPARATOR  # 복합 증상 구분자
-from app.core.symptom_rules import PREDICTED_LABEL_DISPLAY_MIN_CONFIDENCE  # predicted_label 노출 기준
-from app.services.ai_ranker import rerank_results  # 검색 결과 재랭킹
-from app.services.health_status_service import record_search_metrics  # 운영 메트릭 기록
-from app.services.hf_generation_service import get_generation_components  # 생성 모델 워밍업
-from app.services.inference_service import classify_symptom_text  # 통합 추론 서비스
-from app.services.internal_vector_store import build_internal_vector_index  # 내부 벡터 인덱스 구축
-from app.services.language_utils import detect_query_language  # 입력 언어 감지
-from app.services.model_loader import load_model_artifacts  # 아티팩트 기반 모델 로드
-from app.services.question_suggester import build_question_suggestions  # 추천 질문 생성
-from app.services.response_enricher import generate_ai_summary  # AI 요약 생성
-from app.services.response_formatter_v2 import build_error_response_v2  # 에러 응답 생성
-from app.services.response_formatter_v2 import build_search_response_v2  # 성공 응답 생성
-from app.services.response_localizer import localize_response  # 응답 현지화
-from app.services.retriever import retrieve_health_topics  # 통합 검색
-from app.services.symptom_normalizer import normalize_symptom_query  # 증상 정규화
-from app.services.symptom_normalizer import warmup_normalizer  # 정규화 캐시 준비
-from app.services.translator import translate_text  # 질의 번역
-from app.services.triage_service import evaluate_triage_level  # 응급도 분기
-from app.validators.search_request_validator import validate_search_query  # 입력 검증
+from app.core.error_codes import INTERNAL_SERVER_ERROR  # 용도: 공통 서버 에러 코드
+from app.core.error_codes import NO_RESULTS  # 용도: 검색 결과 없음 에러 코드
+from app.core.exceptions import AppException  # 용도: 앱 공통 예외
+from app.core.settings import DEFAULT_INCLUDE_SUMMARY  # 용도: 기본 요약 포함 여부
+from app.core.settings import ENABLE_STARTUP_WARMUP  # 용도: 시작 시 워밍업 여부
+from app.core.settings import ENABLE_TRIAGE  # 용도: 응급도 기능 사용 여부
+from app.core.settings import HF_GENERATION_MODEL_NAME  # 용도: 생성 모델명 기록
+from app.core.settings import RERANK_CANDIDATE_LIMIT  # 용도: rerank 후보 상한
+from app.core.settings import SUMMARY_MODEL_PRELOAD  # 용도: 생성 모델 preload 여부
+from app.core.symptom_rules import AI_FALLBACK_MIN_CONFIDENCE  # 용도: AI fallback 기준
+from app.core.symptom_rules import AI_FALLBACK_MIN_TOKEN_COUNT  # 용도: AI 예측 최소 토큰 수
+from app.core.symptom_rules import NORMALIZED_QUERY_SEPARATOR  # 용도: 복합 증상 구분자
+from app.core.symptom_rules import PREDICTED_LABEL_DISPLAY_MIN_CONFIDENCE  # 용도: predicted_label 노출 기준
+from app.services.ai_ranker import rerank_results  # 용도: 검색 결과 재랭킹
+from app.services.health_status_service import record_search_metrics  # 용도: 운영 메트릭 기록
+from app.services.hf_generation_service import get_generation_components  # 용도: 생성 모델 워밍업
+from app.services.inference_service import classify_symptom_text  # 용도: 통합 추론 서비스
+from app.services.internal_vector_store import build_internal_vector_index  # 용도: 내부 벡터 인덱스 구축
+from app.services.language_utils import detect_query_language  # 용도: 입력 언어 감지
+from app.services.model_loader import load_model_artifacts  # 용도: 아티팩트 기반 모델 로드
+from app.services.question_suggester import build_question_suggestions  # 용도: 추천 질문 생성
+from app.services.response_enricher import build_extractive_summary  # 용도: fallback summary 생성
+from app.services.response_enricher import build_summary_debug  # 용도: summary debug 정보 생성
+from app.services.response_enricher import evaluate_summary_quality  # 용도: summary 품질 검증
+from app.services.response_enricher import generate_ai_summary  # 용도: AI 요약 생성
+from app.services.response_formatter_v2 import build_error_response_v2  # 용도: 에러 응답 생성
+from app.services.response_formatter_v2 import build_search_response_v2  # 용도: 성공 응답 생성
+from app.services.response_localizer import localize_response  # 용도: 응답 현지화
+from app.services.retriever import retrieve_health_topics  # 용도: 통합 검색
+from app.services.symptom_normalizer import normalize_symptom_query  # 용도: 증상 정규화
+from app.services.symptom_normalizer import warmup_normalizer  # 용도: 정규화 캐시 준비
+from app.services.translator import translate_text  # 용도: 질의 번역
+from app.services.triage_service import evaluate_triage_level  # 용도: 응급도 분기
+from app.validators.search_request_validator import validate_search_query  # 용도: 입력 검증
 
 logger = logging.getLogger(__name__)
 
@@ -47,9 +49,7 @@ DEFAULT_TRIAGE_MESSAGE = (
     "This information may help with general understanding, but symptoms should still be monitored carefully."
 )
 
-SUMMARY_FALLBACK_MODEL_NAME = "extractive-fallback-v1"
-SUMMARY_FALLBACK_RESULT_LIMIT = 3
-SUMMARY_FALLBACK_SENTENCE_LIMIT = 2
+SUMMARY_FALLBACK_MODEL_NAME = "extractive-fallback-v2"
 SUMMARY_MIN_TEXT_LENGTH = 12
 
 
@@ -98,9 +98,8 @@ def _limit_rerank_candidates(
     items: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     """
-    유지보수 포인트:
-    - retrieval 단계에서 이미 1차 우선순위가 적용되어 있으므로
-      semantic rerank는 상위 후보만 다시 정렬해도 품질 손실이 작다.
+    retrieval 단계에서 이미 1차 우선순위가 적용되어 있으므로
+    semantic rerank는 상위 후보만 다시 정렬해도 품질 손실이 작다.
     """
     if len(items) <= RERANK_CANDIDATE_LIMIT:
         return items
@@ -117,8 +116,6 @@ def _build_internal_query(
     if input_language != "ko":
         return query
 
-    # 룰/ML/semantic 정규화로 이미 영어 canonical symptom을 확보한 경우
-    # 번역 호출을 건너뛰어 속도 편차를 줄인다.
     if normalized_query and normalize_method not in {"fallback_tokens", "fallback_raw"}:
         return " ".join(_parse_normalized_symptoms(normalized_query)).strip()
 
@@ -295,76 +292,74 @@ def _normalize_summary_text(summary_text: str | None) -> str | None:
     return collapsed_text
 
 
-def _split_sentences(summary_text: str) -> list[str]:
-    normalized_text = summary_text.replace("!", ".").replace("?", ".")
-    raw_sentences = normalized_text.split(".")
-    return [
-        sentence.strip()
-        for sentence in raw_sentences
-        if sentence and sentence.strip()
-    ]
-
-
-def _trim_summary_sentences(
-    summary_text: str,
-    sentence_limit: int,
-) -> str:
-    sentences = _split_sentences(summary_text)
-    if not sentences:
-        return summary_text.strip()
-
-    trimmed_sentences = sentences[:sentence_limit]
-    return ". ".join(trimmed_sentences).strip() + "."
-
-
-def _build_extractive_summary(
+def _build_summary_debug_result(
     detected_language: str,
+    normalized_query: str,
     ranked_items: list[dict[str, Any]],
-) -> str | None:
-    fallback_blocks: list[str] = []
-
-    for item in ranked_items[:SUMMARY_FALLBACK_RESULT_LIMIT]:
-        title = str(item.get("title") or "").strip()
-        summary = str(item.get("summary") or "").strip()
-
-        if not summary:
-            continue
-
-        trimmed_summary = _trim_summary_sentences(
-            summary_text=summary,
-            sentence_limit=SUMMARY_FALLBACK_SENTENCE_LIMIT,
-        )
-
-        if title:
-            fallback_blocks.append(f"{title}: {trimmed_summary}")
-        else:
-            fallback_blocks.append(trimmed_summary)
-
-    if not fallback_blocks:
-        return None
-
-    return " ".join(fallback_blocks).strip()
+    ai_summary: str | None,
+    ai_summary_model: str | None,
+    quality_result: dict[str, Any] | None,
+    summary_status: str,
+) -> dict[str, Any]:
+    return build_summary_debug(
+        detected_language=detected_language,
+        normalized_query=normalized_query,
+        ranked_items=ranked_items,
+        ai_summary=ai_summary,
+        ai_summary_model=ai_summary_model,
+        quality_result=quality_result,
+        summary_status=summary_status,
+    )
 
 
 def _generate_summary_with_fallback(
     query: str,
     detected_language: str,
+    normalized_query: str,
     ranked_items: list[dict[str, Any]],
-) -> tuple[str | None, str | None]:
+) -> tuple[str | None, str | None, dict[str, Any] | None]:
+    generated_summary: str | None = None
+    quality_result: dict[str, Any] | None = None
+
     try:
         generated_summary = generate_ai_summary(
             query=query,
             detected_language=detected_language,
             ranked_items=ranked_items,
+            normalized_query=normalized_query,
         )
         normalized_generated_summary = _normalize_summary_text(generated_summary)
-        if normalized_generated_summary:
-            return normalized_generated_summary, HF_GENERATION_MODEL_NAME
 
-        logger.warning(
-            "[SEARCH] summary generation returned empty text query=%s",
-            query,
-        )
+        if normalized_generated_summary:
+            quality_result = evaluate_summary_quality(
+                summary_text=normalized_generated_summary,
+                normalized_query=normalized_query,
+                ranked_items=ranked_items,
+            )
+
+            if quality_result.get("is_valid"):
+                debug_result = _build_summary_debug_result(
+                    detected_language=detected_language,
+                    normalized_query=normalized_query,
+                    ranked_items=ranked_items,
+                    ai_summary=normalized_generated_summary,
+                    ai_summary_model=HF_GENERATION_MODEL_NAME,
+                    quality_result=quality_result,
+                    summary_status="llm_accepted",
+                )
+                return normalized_generated_summary, HF_GENERATION_MODEL_NAME, debug_result
+
+            logger.warning(
+                "[SEARCH] summary rejected query=%s reason=%s",
+                query,
+                quality_result.get("reason"),
+            )
+        else:
+            logger.warning(
+                "[SEARCH] summary generation returned empty text query=%s",
+                query,
+            )
+
     except Exception as error:
         logger.warning(
             "[SEARCH] summary generation failed query=%s error=%s",
@@ -372,15 +367,38 @@ def _generate_summary_with_fallback(
             error,
         )
 
-    fallback_summary = _build_extractive_summary(
-        detected_language=detected_language,
+    fallback_summary = build_extractive_summary(
         ranked_items=ranked_items,
+        normalized_query=normalized_query,
     )
     normalized_fallback_summary = _normalize_summary_text(fallback_summary)
     if normalized_fallback_summary:
-        return normalized_fallback_summary, SUMMARY_FALLBACK_MODEL_NAME
+        fallback_quality_result = evaluate_summary_quality(
+            summary_text=normalized_fallback_summary,
+            normalized_query=normalized_query,
+            ranked_items=ranked_items,
+        )
+        debug_result = _build_summary_debug_result(
+            detected_language=detected_language,
+            normalized_query=normalized_query,
+            ranked_items=ranked_items,
+            ai_summary=normalized_fallback_summary,
+            ai_summary_model=SUMMARY_FALLBACK_MODEL_NAME,
+            quality_result=fallback_quality_result,
+            summary_status="fallback_used",
+        )
+        return normalized_fallback_summary, SUMMARY_FALLBACK_MODEL_NAME, debug_result
 
-    return None, None
+    debug_result = _build_summary_debug_result(
+        detected_language=detected_language,
+        normalized_query=normalized_query,
+        ranked_items=ranked_items,
+        ai_summary=generated_summary,
+        ai_summary_model=None,
+        quality_result=quality_result,
+        summary_status="summary_unavailable",
+    )
+    return None, None, debug_result
 
 
 def search_symptom(
@@ -419,7 +437,6 @@ def search_symptom(
         detected_language = detect_query_language(validated_query)
         timings["translation_ms"] = 0.0
 
-        # 한국어는 정규화부터 먼저 시도해서 룰 기반 canonical symptom 확보 시 번역을 건너뛴다.
         stage_started_at = time.perf_counter()
         normalization_input = validated_query if detected_language != "ko" else ""
         normalized_query, normalize_method, normalize_score = normalize_symptom_query(
@@ -519,6 +536,7 @@ def search_symptom(
 
         ai_summary: str | None = None
         ai_summary_model: str | None = None
+        summary_debug: dict[str, Any] | None = None
 
         logger.info(
             "[SEARCH] summary requested query=%s requested=%s force_summary=%s ranked_items=%s",
@@ -530,18 +548,31 @@ def search_symptom(
 
         if summary_requested and ranked_items:
             stage_started_at = time.perf_counter()
-            ai_summary, ai_summary_model = _generate_summary_with_fallback(
+            ai_summary, ai_summary_model, summary_debug = _generate_summary_with_fallback(
                 query=validated_query,
                 detected_language=detected_language,
+                normalized_query=normalized_query,
                 ranked_items=ranked_items,
             )
             timings["summary_ms"] = _elapsed_ms(stage_started_at)
 
             logger.info(
-                "[SEARCH] summary result query=%s generated=%s model=%s",
+                "[SEARCH] summary result query=%s generated=%s model=%s status=%s",
                 validated_query,
                 bool(ai_summary),
                 ai_summary_model,
+                summary_debug.get("summary_status") if isinstance(summary_debug, dict) else None,
+            )
+
+        if summary_requested and not summary_debug:
+            summary_debug = _build_summary_debug_result(
+                detected_language=detected_language,
+                normalized_query=normalized_query,
+                ranked_items=ranked_items,
+                ai_summary=None,
+                ai_summary_model=None,
+                quality_result=None,
+                summary_status="requested_but_not_built",
             )
 
         timings["total_ms"] = _elapsed_ms(request_started_at)
@@ -568,6 +599,7 @@ def search_symptom(
                 error_code=NO_RESULTS,
                 timings=timings,
                 summary_included=bool(ai_summary),
+                summary_debug=summary_debug,
             )
             localized_error_response = localize_response(
                 error_response,
@@ -602,6 +634,7 @@ def search_symptom(
             ai_summary_model=ai_summary_model,
             timings=timings,
             summary_included=bool(ai_summary),
+            summary_debug=summary_debug,
         )
         localized_success_response = localize_response(
             success_response,
@@ -638,6 +671,7 @@ def search_symptom(
             error_code=error.error_code,
             timings=timings,
             summary_included=False,
+            summary_debug=None,
         )
         localized_error_response = localize_response(
             error_response,
@@ -675,6 +709,7 @@ def search_symptom(
             error_code=INTERNAL_SERVER_ERROR,
             timings=timings,
             summary_included=False,
+            summary_debug=None,
         )
         localized_error_response = localize_response(
             error_response,

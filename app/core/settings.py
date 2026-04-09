@@ -1,8 +1,8 @@
 # app/core/settings.py
-from __future__ import annotations  # 최신 타입 힌트 문법 지원
+from __future__ import annotations  # 용도: 최신 타입 힌트 문법 지원
 
-import os  # 환경변수 조회
-from pathlib import Path  # 프로젝트 기준 경로 처리
+import os  # 용도: 환경변수 조회
+from pathlib import Path  # 용도: 프로젝트 기준 경로 처리
 
 # 앱 기본 정보
 APP_NAME = "Health AI Search API"
@@ -24,7 +24,7 @@ ENABLE_INTERNAL_SEARCH = os.getenv("ENABLE_INTERNAL_SEARCH", "true").lower() == 
 ENABLE_EXTERNAL_SEARCH = os.getenv("ENABLE_EXTERNAL_SEARCH", "true").lower() == "true"
 ENABLE_TRIAGE = os.getenv("ENABLE_TRIAGE", "true").lower() == "true"
 
-# 요약은 기본 비활성화로 두고 필요할 때만 켜게 한다.
+# 요약 기능 플래그
 ENABLE_AI_SUMMARY = os.getenv("ENABLE_AI_SUMMARY", "false").lower() == "true"
 DEFAULT_INCLUDE_SUMMARY = os.getenv("DEFAULT_INCLUDE_SUMMARY", "false").lower() == "true"
 AI_SUMMARY_FAIL_OPEN = os.getenv("AI_SUMMARY_FAIL_OPEN", "true").lower() == "true"
@@ -56,7 +56,47 @@ HF_GENERATION_MODEL_NAME = os.getenv(
 )
 AI_SUMMARY_MAX_NEW_TOKENS = int(os.getenv("AI_SUMMARY_MAX_NEW_TOKENS", "120"))
 AI_SUMMARY_MAX_CONTEXT_CHARS = int(os.getenv("AI_SUMMARY_MAX_CONTEXT_CHARS", "1800"))
-AI_SUMMARY_MAX_ITEMS = int(os.getenv("AI_SUMMARY_MAX_ITEMS", "2"))
+AI_SUMMARY_MAX_ITEMS = int(os.getenv("AI_SUMMARY_MAX_ITEMS", "3"))
+AI_SUMMARY_MAX_INPUT_TOKENS = int(os.getenv("AI_SUMMARY_MAX_INPUT_TOKENS", "1024"))
+AI_SUMMARY_MIN_OUTPUT_CHARS = int(os.getenv("AI_SUMMARY_MIN_OUTPUT_CHARS", "20"))
+AI_SUMMARY_NUM_BEAMS = int(os.getenv("AI_SUMMARY_NUM_BEAMS", "4"))
+AI_SUMMARY_TEMPERATURE = float(os.getenv("AI_SUMMARY_TEMPERATURE", "0.2"))
+AI_SUMMARY_REPETITION_PENALTY = float(os.getenv("AI_SUMMARY_REPETITION_PENALTY", "1.05"))
+AI_SUMMARY_DO_SAMPLE = os.getenv("AI_SUMMARY_DO_SAMPLE", "false").lower() == "true"
+AI_SUMMARY_EARLY_STOPPING = os.getenv("AI_SUMMARY_EARLY_STOPPING", "true").lower() == "true"
+
+# summary 품질 제어
+AI_SUMMARY_SENTENCE_LIMIT = int(os.getenv("AI_SUMMARY_SENTENCE_LIMIT", "2"))
+AI_SUMMARY_FALLBACK_RESULT_LIMIT = int(os.getenv("AI_SUMMARY_FALLBACK_RESULT_LIMIT", "3"))
+AI_SUMMARY_FALLBACK_SENTENCE_LIMIT = int(os.getenv("AI_SUMMARY_FALLBACK_SENTENCE_LIMIT", "2"))
+AI_SUMMARY_ITEM_TITLE_MAX_CHARS = int(os.getenv("AI_SUMMARY_ITEM_TITLE_MAX_CHARS", "100"))
+AI_SUMMARY_ITEM_SUMMARY_MAX_CHARS = int(os.getenv("AI_SUMMARY_ITEM_SUMMARY_MAX_CHARS", "260"))
+AI_SUMMARY_PROMPT_LOG_MAX_CHARS = int(os.getenv("AI_SUMMARY_PROMPT_LOG_MAX_CHARS", "800"))
+AI_SUMMARY_RAW_OUTPUT_LOG_MAX_CHARS = int(os.getenv("AI_SUMMARY_RAW_OUTPUT_LOG_MAX_CHARS", "600"))
+AI_SUMMARY_CONTEXT_INCLUDE_SOURCE = os.getenv("AI_SUMMARY_CONTEXT_INCLUDE_SOURCE", "true").lower() == "true"
+AI_SUMMARY_CONTEXT_INCLUDE_URL = os.getenv("AI_SUMMARY_CONTEXT_INCLUDE_URL", "false").lower() == "true"
+AI_SUMMARY_PREFER_DIVERSE_RESULTS = os.getenv("AI_SUMMARY_PREFER_DIVERSE_RESULTS", "true").lower() == "true"
+AI_SUMMARY_MAX_SYMPTOM_HINTS = int(os.getenv("AI_SUMMARY_MAX_SYMPTOM_HINTS", "3"))
+AI_SUMMARY_CONTEXT_CANDIDATE_POOL = int(os.getenv("AI_SUMMARY_CONTEXT_CANDIDATE_POOL", "6"))
+
+# summary 검증 규칙
+AI_SUMMARY_REQUIRE_HINT_MATCH = os.getenv("AI_SUMMARY_REQUIRE_HINT_MATCH", "true").lower() == "true"
+AI_SUMMARY_MIN_CONTEXT_OVERLAP_COUNT = int(
+    os.getenv("AI_SUMMARY_MIN_CONTEXT_OVERLAP_COUNT", "2"),
+)
+AI_SUMMARY_MAX_UNSUPPORTED_KEYWORD_COUNT = int(
+    os.getenv("AI_SUMMARY_MAX_UNSUPPORTED_KEYWORD_COUNT", "4"),
+)
+
+# 의료 안내 문구
+AI_SUMMARY_KO_DISCLAIMER = os.getenv(
+    "AI_SUMMARY_KO_DISCLAIMER",
+    "이 내용은 참고용 건강 정보이며 의학적 진단이 아닙니다. 증상이 지속되거나 악화되면 의료진 상담이 필요합니다.",
+)
+AI_SUMMARY_EN_DISCLAIMER = os.getenv(
+    "AI_SUMMARY_EN_DISCLAIMER",
+    "This is general health information only and not a medical diagnosis. Seek medical care if symptoms continue or worsen.",
+)
 
 # RAG 설정
 RAG_CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "420"))

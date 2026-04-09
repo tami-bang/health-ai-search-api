@@ -1,8 +1,10 @@
-# schemas.py
-from __future__ import annotations  # 최신 타입 힌트 문법 지원
+# app/schemas.py
+from __future__ import annotations  # 용도: 최신 타입 힌트 문법 지원
 
-from pydantic import BaseModel  # 요청/응답 스키마 정의
-from pydantic import Field  # 리스트 기본값 정의, 필드 제약 조건 정의
+from typing import Any  # 용도: 가변 debug 필드 타입 정의
+
+from pydantic import BaseModel  # 용도: 요청/응답 스키마 정의
+from pydantic import Field  # 용도: 필드 기본값 및 제약 정의
 
 
 class TopicItem(BaseModel):
@@ -25,15 +27,20 @@ class SearchMeta(BaseModel):
     normalize_score: float | None = None
     predicted_label: str | None = None
     model_confidence: float | None = None
+    model_backend: str | None = None
+    model_version: str | None = None
     search_query: str | None = None
     is_error: bool | None = None
     error_code: str | None = None
+    timings: dict[str, float] = Field(default_factory=dict)
 
 
 class SearchGuidance(BaseModel):
     notice: str
     triage_level: str
     triage_message: str
+    triage_score: int = 0
+    matched_patterns: list[str] = Field(default_factory=list)
     question_suggestions: list[str] = Field(default_factory=list)
 
 
@@ -43,6 +50,8 @@ class SearchResultsBundle(BaseModel):
     related_topics: list[TopicItem] = Field(default_factory=list)
     ai_summary: str | None = None
     ai_summary_model: str | None = None
+    summary_included: bool = False
+    summary_debug: dict[str, Any] | None = None
 
 
 class SearchResponse(BaseModel):
@@ -55,6 +64,7 @@ class SearchResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str
+
 
 class SearchRequest(BaseModel):
     query: str = Field(..., min_length=2, description="증상 질의")

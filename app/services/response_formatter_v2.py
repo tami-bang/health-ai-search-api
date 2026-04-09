@@ -1,9 +1,9 @@
 # app/services/response_formatter_v2.py
-from __future__ import annotations  # 최신 타입 힌트 문법 지원
+from __future__ import annotations  # 용도: 최신 타입 힌트 문법 지원
 
-from typing import Any  # dict 타입 힌트 보조
+from typing import Any  # 용도: dict 타입 힌트 보조
 
-from app.core.symptom_rules import DEFAULT_NOTICE  # 공통 안내 문구
+from app.core.symptom_rules import DEFAULT_NOTICE  # 용도: 공통 안내 문구
 
 
 def _to_result_item(item: dict[str, Any]) -> dict[str, Any]:
@@ -101,6 +101,7 @@ def build_search_response_v2(
     ai_summary_model: str | None,
     timings: dict[str, float],
     summary_included: bool,
+    summary_debug: dict[str, Any] | None,
 ) -> dict[str, Any]:
     results = [_to_result_item(item) for item in items]
     top_result = results[0] if results else None
@@ -136,6 +137,7 @@ def build_search_response_v2(
             "ai_summary": ai_summary,
             "ai_summary_model": ai_summary_model,
             "summary_included": summary_included,
+            "summary_debug": summary_debug,
         },
     }
 
@@ -161,6 +163,7 @@ def build_error_response_v2(
     error_code: str,
     timings: dict[str, float],
     summary_included: bool,
+    summary_debug: dict[str, Any] | None,
 ) -> dict[str, Any]:
     return {
         "query": query,
@@ -193,6 +196,7 @@ def build_error_response_v2(
             "ai_summary": None,
             "ai_summary_model": None,
             "summary_included": summary_included,
+            "summary_debug": summary_debug,
         },
         "message": message,
     }
