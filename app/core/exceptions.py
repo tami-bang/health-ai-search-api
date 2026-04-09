@@ -1,5 +1,6 @@
-# exceptions.py
-from __future__ import annotations  # 최신 타입 힌트 문법 지원
+# app/core/exceptions.py
+from __future__ import annotations  # 용도: 최신 타입 힌트 문법 지원
+
 
 class AppException(Exception):
     def __init__(
@@ -13,11 +14,22 @@ class AppException(Exception):
         self.error_code = error_code
         self.status_code = status_code
 
+
 class ValidationException(AppException):
     pass
+
 
 class DependencyNotReadyException(AppException):
     pass
 
+
 class RetrievalException(AppException):
+    pass
+
+
+class AuthException(AppException):
+    pass
+
+
+class PermissionDeniedException(AppException):
     pass

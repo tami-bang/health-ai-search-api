@@ -1,0 +1,14 @@
+{
+  "logs": [
+    {
+      "audit_id": "audit-0f872871822c4128800ee9d4730addfd",
+      "actor_user_id": "user-superadmin-001",
+      "actor_username": "superadmin",
+      "action": "user_logged_in",
+      "target_type": "user",
+      "target_id": "user-superadmin-001",
+      "detail": {},
+      "created_at": "2026-04-09T17:53:05.820050+00:00"
+    }
+  ]
+}

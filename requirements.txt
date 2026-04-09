@@ -11,3 +11,6 @@ torch
 accelerate
 pydantic
 joblib
+email-validator
+passlib[bcrypt]
+python-jose[cryptography]

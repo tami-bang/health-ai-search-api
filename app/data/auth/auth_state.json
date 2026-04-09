@@ -1,0 +1,14 @@
+{
+  "refresh_sessions": [
+    {
+      "jti": "XiuPxJHgYE8slGYO7yxrhQ",
+      "user_id": "user-superadmin-001",
+      "token_type": "refresh",
+      "is_revoked": false,
+      "created_at": "2026-04-09T17:53:05.805248+00:00",
+      "expires_at": null
+    }
+  ],
+  "password_reset_tokens": [],
+  "email_verification_tokens": []
+}

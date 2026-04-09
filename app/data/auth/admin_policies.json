@@ -1,0 +1,13 @@
+{
+  "policies": {
+    "allow_public_signup": true,
+    "require_email_verification": false,
+    "allow_operator_account_creation": true,
+    "enable_ai_summary": true,
+    "enable_external_search": true,
+    "enable_internal_search": true,
+    "enable_triage": true,
+    "maintenance_mode": false
+  },
+  "updated_at": null
+}
