@@ -5,15 +5,14 @@ import logging  # 실행 로그 기록
 
 from sklearn.feature_extraction.text import TfidfVectorizer  # 텍스트 벡터화
 from sklearn.linear_model import LogisticRegression  # 텍스트 분류 모델
-from sklearn.metrics import accuracy_score  # 정확도 계산
-from sklearn.metrics import classification_report  # 분류 성능 리포트
 from sklearn.model_selection import train_test_split  # 학습/검증 분리
 
+from app.core.settings import TRAINING_RANDOM_STATE  # 학습 고정 seed
+from app.trainer.evaluator import build_evaluation_summary  # 평가 결과 생성
 
 logger = logging.getLogger(__name__)
 
 TEST_SIZE = 0.2
-RANDOM_STATE = 42
 MAX_FEATURES = 20000
 NGRAM_RANGE = (1, 2)
 MAX_ITER = 1000
@@ -30,7 +29,7 @@ def build_vectorizer() -> TfidfVectorizer:
 def build_classifier() -> LogisticRegression:
     return LogisticRegression(
         max_iter=MAX_ITER,
-        random_state=RANDOM_STATE,
+        random_state=TRAINING_RANDOM_STATE,
     )
 
 
@@ -42,7 +41,7 @@ def split_training_data(
         texts,
         labels,
         test_size=TEST_SIZE,
-        random_state=RANDOM_STATE,
+        random_state=TRAINING_RANDOM_STATE,
         stratify=labels,
     )
 
@@ -70,22 +69,16 @@ def evaluate_model(
     valid_matrix = vectorizer.transform(valid_texts)
     predicted_labels = classifier.predict(valid_matrix)
 
-    accuracy = float(accuracy_score(valid_labels, predicted_labels))
-    report = classification_report(
-        valid_labels,
-        predicted_labels,
-        output_dict=True,
-        zero_division=0,
+    summary = build_evaluation_summary(
+        valid_labels=valid_labels,
+        predicted_labels=[str(item) for item in predicted_labels],
+        class_labels=[str(item) for item in classifier.classes_],
     )
 
-    summary = {
-        "accuracy": round(accuracy, 4),
-        "sample_count": len(valid_labels),
-        "label_count": len(classifier.classes_),
-        "classes": [str(item) for item in classifier.classes_],
-        "weighted_avg": report.get("weighted avg", {}),
-        "macro_avg": report.get("macro avg", {}),
-    }
-
-    logger.info("[TRAIN] evaluation accuracy=%.4f", accuracy)
+    logger.info(
+        "[TRAIN] evaluation accuracy=%.4f macro_f1=%.4f weighted_f1=%.4f",
+        summary["accuracy"],
+        summary["macro_f1"],
+        summary["weighted_f1"],
+    )
     return summary

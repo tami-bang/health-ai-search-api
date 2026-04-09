@@ -4,7 +4,6 @@ from __future__ import annotations  # 최신 타입 힌트 문법 지원
 import os  # 환경변수 조회
 from pathlib import Path  # 프로젝트 기준 경로 처리
 
-
 # 앱 기본 정보
 APP_NAME = "Health AI Search API"
 
@@ -71,7 +70,7 @@ INTERNAL_KNOWLEDGE_JSON_PATH = os.getenv(
     str(DATA_DIR / "internal_health_docs.json"),
 )
 
-# 학습/추론 분리용 아티팩트 경로
+# sklearn 아티팩트 경로
 SYMPTOM_MODEL_ARTIFACT_PATH = os.getenv(
     "SYMPTOM_MODEL_ARTIFACT_PATH",
     str(ARTIFACTS_DIR / "symptom_classifier.pkl"),
@@ -80,3 +79,46 @@ SYMPTOM_VECTORIZER_ARTIFACT_PATH = os.getenv(
     "SYMPTOM_VECTORIZER_ARTIFACT_PATH",
     str(ARTIFACTS_DIR / "symptom_vectorizer.pkl"),
 )
+
+# 학습 파이프라인 메타데이터
+TRAINING_DATASET_NAME = os.getenv(
+    "TRAINING_DATASET_NAME",
+    "gretelai/symptom_to_diagnosis",
+)
+TRAINING_DATASET_VERSION = os.getenv(
+    "TRAINING_DATASET_VERSION",
+    "hf_default",
+)
+SYMPTOM_MODEL_VERSION = os.getenv(
+    "SYMPTOM_MODEL_VERSION",
+    "symptom-lr-v1",
+)
+TRAINING_RANDOM_STATE = int(os.getenv("TRAINING_RANDOM_STATE", "42"))
+
+# Hugging Face 분류 모델 설정
+HF_CLASSIFIER_BASE_MODEL_NAME = os.getenv(
+    "HF_CLASSIFIER_BASE_MODEL_NAME",
+    "distilbert-base-uncased",
+)
+HF_CLASSIFIER_MODEL_VERSION = os.getenv(
+    "HF_CLASSIFIER_MODEL_VERSION",
+    "symptom-hf-v1",
+)
+HF_CLASSIFIER_ARTIFACT_DIR = os.getenv(
+    "HF_CLASSIFIER_ARTIFACT_DIR",
+    str(ARTIFACTS_DIR / "hf_symptom_classifier"),
+)
+HF_CLASSIFIER_METADATA_PATH = os.getenv(
+    "HF_CLASSIFIER_METADATA_PATH",
+    str(ARTIFACTS_DIR / "hf_symptom_classifier_metadata.json"),
+)
+HF_CLASSIFIER_MAX_LENGTH = int(os.getenv("HF_CLASSIFIER_MAX_LENGTH", "160"))
+HF_CLASSIFIER_NUM_EPOCHS = int(os.getenv("HF_CLASSIFIER_NUM_EPOCHS", "2"))
+HF_CLASSIFIER_BATCH_SIZE = int(os.getenv("HF_CLASSIFIER_BATCH_SIZE", "16"))
+HF_CLASSIFIER_LEARNING_RATE = float(os.getenv("HF_CLASSIFIER_LEARNING_RATE", "2e-5"))
+
+# 추론 시 어떤 모델을 우선 사용할지 결정
+PREFERRED_CLASSIFIER_BACKEND = os.getenv(
+    "PREFERRED_CLASSIFIER_BACKEND",
+    "hf",
+).strip().lower()

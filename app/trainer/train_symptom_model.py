@@ -4,13 +4,17 @@ from __future__ import annotations  # 최신 타입 힌트 문법 지원
 import logging  # 실행 로그 기록
 
 from app.core.logging_config import configure_logging  # 공통 로그 초기화
-from trainer.artifact_writer import save_model_artifacts  # 학습 결과 저장
-from trainer.artifact_writer import save_training_metadata  # 메타데이터 저장
-from trainer.dataset_loader import build_training_texts_and_labels  # 학습 데이터 준비
-from trainer.model_pipeline import evaluate_model  # 검증 성능 평가
-from trainer.model_pipeline import split_training_data  # 학습/검증 데이터 분리
-from trainer.model_pipeline import train_vectorizer_and_model  # 벡터라이저/분류기 학습
-
+from app.core.settings import SYMPTOM_MODEL_VERSION  # 모델 버전 정보
+from app.core.settings import TRAINING_DATASET_NAME  # 데이터셋 이름
+from app.core.settings import TRAINING_DATASET_VERSION  # 데이터셋 버전 정보
+from app.trainer.artifact_writer import save_model_artifacts  # 학습 결과 저장
+from app.trainer.artifact_writer import save_training_metadata  # 메타데이터 저장
+from app.trainer.dataset_loader import build_dataset_fingerprint  # 데이터 fingerprint 생성
+from app.trainer.dataset_loader import build_training_texts_and_labels  # 학습 데이터 준비
+from app.trainer.dataset_loader import load_training_rows  # 원본 처리행 조회
+from app.trainer.model_pipeline import evaluate_model  # 검증 성능 평가
+from app.trainer.model_pipeline import split_training_data  # 학습/검증 데이터 분리
+from app.trainer.model_pipeline import train_vectorizer_and_model  # 벡터라이저/분류기 학습
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -33,11 +37,15 @@ def _build_training_metadata(
     labels: list[str],
     evaluation_summary: dict,
     artifact_paths: dict[str, str],
+    dataset_fingerprint: str,
 ) -> dict:
     unique_labels = sorted({str(label) for label in labels})
 
     return {
-        "dataset_name": "gretelai/symptom_to_diagnosis",
+        "model_version": SYMPTOM_MODEL_VERSION,
+        "dataset_name": TRAINING_DATASET_NAME,
+        "dataset_version": TRAINING_DATASET_VERSION,
+        "dataset_fingerprint": dataset_fingerprint,
         "train_size": len(train_texts),
         "validation_size": len(valid_texts),
         "total_size": len(labels),
@@ -50,6 +58,9 @@ def _build_training_metadata(
 
 def main() -> None:
     logger.info("[TRAIN] start symptom artifact generation")
+
+    processed_rows = load_training_rows()
+    dataset_fingerprint = build_dataset_fingerprint(processed_rows)
 
     texts, labels = build_training_texts_and_labels()
     _validate_training_inputs(texts, labels)
@@ -82,14 +93,11 @@ def main() -> None:
         labels=labels,
         evaluation_summary=evaluation_summary,
         artifact_paths=artifact_paths,
+        dataset_fingerprint=dataset_fingerprint,
     )
     metadata_path = save_training_metadata(metadata)
 
-    logger.info("[TRAIN] finished")
-    logger.info("[TRAIN] model_path=%s", artifact_paths["model_path"])
-    logger.info("[TRAIN] vectorizer_path=%s", artifact_paths["vectorizer_path"])
-    logger.info("[TRAIN] metadata_path=%s", metadata_path)
-    logger.info("[TRAIN] accuracy=%.4f", evaluation_summary["accuracy"])
+    logger.info("[TRAIN] finished model_version=%s metadata=%s", SYMPTOM_MODEL_VERSION, metadata_path)
 
 
 if __name__ == "__main__":

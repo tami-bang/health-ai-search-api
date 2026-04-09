@@ -34,7 +34,6 @@ from app.services.translator import translate_text  # 질의 번역
 from app.services.triage_service import evaluate_triage_level  # 응급도 분기
 from app.validators.search_request_validator import validate_search_query  # 입력 검증
 
-
 logger = logging.getLogger(__name__)
 
 

@@ -11,8 +11,8 @@ import joblib  # sklearn 아티팩트 저장
 
 from app.core.settings import ARTIFACTS_DIR  # 아티팩트 디렉토리 경로
 from app.core.settings import SYMPTOM_MODEL_ARTIFACT_PATH  # 분류기 저장 경로
+from app.core.settings import SYMPTOM_MODEL_VERSION  # 모델 버전 정보
 from app.core.settings import SYMPTOM_VECTORIZER_ARTIFACT_PATH  # 벡터라이저 저장 경로
-
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +49,7 @@ def save_training_metadata(metadata: dict[str, Any]) -> str:
 
     payload = {
         **metadata,
+        "model_version": SYMPTOM_MODEL_VERSION,
         "saved_at": datetime.utcnow().isoformat() + "Z",
     }
 

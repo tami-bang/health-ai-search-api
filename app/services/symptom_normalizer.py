@@ -1,6 +1,7 @@
-# symptom_normalizer.py
+# app/services/symptom_normalizer.py
 from __future__ import annotations  # 최신 타입 힌트 문법 지원
 
+import logging  # 실행 로그 기록
 from functools import lru_cache  # prototype embedding 캐시
 
 import numpy as np  # 임베딩 유사도 계산
@@ -8,9 +9,13 @@ import numpy as np  # 임베딩 유사도 계산
 from app.core.symptom_rules import ENGLISH_HEAD_TRAUMA_PATTERNS  # 영어 외상성 머리 충격 패턴
 from app.core.symptom_rules import KOREAN_HEAD_TRAUMA_PATTERNS  # 한국어 외상성 머리 충격 패턴
 from app.core.symptom_rules import KOREAN_RULES  # 한국어 일반 증상 룰
+from app.core.symptom_rules import NORMALIZER_ML_CONFIDENCE_THRESHOLD  # ML 정규화 임계값
 from app.core.symptom_rules import NORMALIZER_SEMANTIC_THRESHOLD  # semantic 정규화 임계값
 from app.core.symptom_rules import SYMPTOM_RULES  # canonical symptom 룰 테이블
 from app.services.ai_ranker import get_embedding_model  # 공용 임베딩 모델 재사용
+from app.services.model_loader import predict_with_confidence  # 학습 모델 예측 사용
+
+logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=1)
@@ -77,6 +82,21 @@ def _match_english_symptom_rule(internal_query: str) -> tuple[str, str, float] |
     return None
 
 
+def _match_ml_rule(internal_query: str) -> tuple[str, str, float] | None:
+    cleaned_query = (internal_query or "").strip().lower()
+    if not cleaned_query:
+        return None
+
+    predicted_label, confidence = predict_with_confidence(cleaned_query)
+    if not predicted_label:
+        return None
+
+    if confidence < NORMALIZER_ML_CONFIDENCE_THRESHOLD:
+        return None
+
+    return predicted_label, "ml_classifier", round(confidence, 4)
+
+
 def _match_semantic_rule(
     original_query: str,
     internal_query: str,
@@ -100,7 +120,7 @@ def _match_semantic_rule(
             return best_label, "semantic", round(best_score, 4)
 
     except Exception as error:
-        print(f"[NORMALIZER] semantic normalize skipped: {error}")
+        logger.warning("[NORMALIZER] semantic normalize skipped: %s", error)
 
     return None
 
@@ -123,8 +143,9 @@ def normalize_symptom_query(
     2) 원문 기준 한국어 일반 증상 룰
     3) 번역문 기준 영어 외상성 머리 충격 룰
     4) 번역문 기준 영어 일반 증상 룰
-    5) semantic 정규화
-    6) fallback
+    5) ML classifier 기반 정규화
+    6) semantic 정규화
+    7) fallback
     """
     original = (original_query or "").strip()
     internal = (internal_query or "").strip().lower()
@@ -147,6 +168,10 @@ def normalize_symptom_query(
     rule_result = _match_english_symptom_rule(internal)
     if rule_result:
         return rule_result
+
+    ml_result = _match_ml_rule(internal)
+    if ml_result:
+        return ml_result
 
     semantic_result = _match_semantic_rule(original, internal)
     if semantic_result:

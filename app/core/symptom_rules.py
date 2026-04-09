@@ -1,4 +1,4 @@
-# symptom_rules.py
+# app/core/symptom_rules.py
 from __future__ import annotations  # 최신 타입 힌트 문법 지원
 
 # 공통 설정값
@@ -8,6 +8,7 @@ MEDLINEPLUS_RETMAX = 5
 
 # 정규화 / fallback 기준값
 NORMALIZER_SEMANTIC_THRESHOLD = 0.58
+NORMALIZER_ML_CONFIDENCE_THRESHOLD = 0.60
 AI_FALLBACK_MIN_TOKEN_COUNT = 3
 AI_FALLBACK_MIN_CONFIDENCE = 0.35
 
