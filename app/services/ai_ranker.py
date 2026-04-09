@@ -9,7 +9,6 @@ from sentence_transformers import SentenceTransformer  # 문장 임베딩 모델
 _MODEL: SentenceTransformer | None = None
 _MODEL_NAME = "all-MiniLM-L6-v2"
 
-
 def get_embedding_model() -> SentenceTransformer:
     """
     임베딩 모델 lazy load
@@ -20,7 +19,6 @@ def get_embedding_model() -> SentenceTransformer:
         _MODEL = SentenceTransformer(_MODEL_NAME)
     return _MODEL
 
-
 def build_search_text(item: dict[str, Any]) -> str:
     title = (item.get("title") or "").strip()
     summary = (item.get("summary") or "").strip()
@@ -29,15 +27,10 @@ def build_search_text(item: dict[str, Any]) -> str:
         return f"{title}. {summary}"
     return title or summary
 
-
 def compute_keyword_boost(
     item: dict[str, Any],
     keyword_hint: str | None = None,
 ) -> tuple[float, dict[str, float]]:
-    """
-    정규화 결과를 재랭킹에 반영하는 보조 점수
-    - semantic만 쓰면 concussion/tbi 같은 근접 개념이 과하게 올라올 수 있음
-    """
     title = (item.get("title") or "").strip().lower()
     summary = (item.get("summary") or "").strip().lower()
     hint = (keyword_hint or "").strip().lower()
@@ -47,11 +40,13 @@ def compute_keyword_boost(
             "title_exact": 0.0,
             "title_contains": 0.0,
             "summary_contains": 0.0,
+            "retrieval_priority_boost": 0.0,
         }
 
     title_exact = 0.0
     title_contains = 0.0
     summary_contains = 0.0
+    retrieval_priority_boost = float(item.get("retrieval_priority_boost", 0.0) or 0.0)
 
     if title == hint:
         title_exact = 0.45
@@ -61,13 +56,13 @@ def compute_keyword_boost(
     if hint in summary:
         summary_contains = 0.10
 
-    total_boost = title_exact + title_contains + summary_contains
+    total_boost = title_exact + title_contains + summary_contains + retrieval_priority_boost
     return total_boost, {
         "title_exact": title_exact,
         "title_contains": title_contains,
         "summary_contains": summary_contains,
+        "retrieval_priority_boost": retrieval_priority_boost,
     }
-
 
 def rerank_results(
     query: str,

@@ -8,7 +8,6 @@ from sklearn.linear_model import LogisticRegression  # 간단한 텍스트 분�
 _vectorizer: TfidfVectorizer | None = None
 _model: LogisticRegression | None = None
 
-
 def train_model() -> None:
     global _vectorizer, _model
 
@@ -43,6 +42,8 @@ def train_model() -> None:
 
     print("[MODEL] training complete")
 
+def is_model_ready() -> bool:
+    return _vectorizer is not None and _model is not None
 
 def predict(text: str) -> str:
     global _vectorizer, _model
@@ -57,7 +58,6 @@ def predict(text: str) -> str:
     x_input = _vectorizer.transform([cleaned])
     prediction = _model.predict(x_input)[0]
     return str(prediction)
-
 
 def predict_with_confidence(text: str) -> tuple[str | None, float]:
     global _vectorizer, _model

@@ -11,7 +11,73 @@ NORMALIZER_SEMANTIC_THRESHOLD = 0.58
 AI_FALLBACK_MIN_TOKEN_COUNT = 3
 AI_FALLBACK_MIN_CONFIDENCE = 0.35
 
-# 검색용 canonical symptom + 영어 변형 표현
+# 증상별 검색 확장 키워드
+# 확장 포인트:
+# - 실제 검색 품질이 안 좋은 증상만 여기 추가하면 됨
+# - retriever에서 이 매핑을 참고해 검색 query를 넓힌다
+SYMPTOM_SEARCH_EXPANSIONS: dict[str, list[str]] = {
+    "runny nose": [
+        "runny nose",
+        "rhinitis",
+        "common cold",
+        "allergy",
+    ],
+    "cough": [
+        "cough",
+        "common cold",
+        "bronchitis",
+    ],
+    "fever": [
+        "fever",
+        "infection",
+        "flu",
+    ],
+    "diarrhea": [
+        "diarrhea",
+        "gastroenteritis",
+        "dehydration",
+    ],
+    "headache": [
+        "headache",
+        "migraine",
+        "tension headache",
+    ],
+    "concussion": [
+        "concussion",
+        "head injury",
+        "brain injury",
+    ],
+    "sore throat": [
+        "sore throat",
+        "pharyngitis",
+        "common cold",
+    ],
+    "nausea": [
+        "nausea",
+        "vomiting",
+        "stomach flu",
+    ],
+    "abdominal pain": [
+        "abdominal pain",
+        "stomach pain",
+        "digestive problems",
+    ],
+}
+
+# broad/general 문서보다 증상 직접 관련 문서를 우선시키기 위한 힌트
+SYMPTOM_PRIORITY_KEYWORDS: dict[str, list[str]] = {
+    "runny nose": ["runny nose", "rhinitis", "allergy", "cold"],
+    "cough": ["cough", "bronchitis", "cold"],
+    "fever": ["fever", "flu", "infection"],
+    "diarrhea": ["diarrhea", "dehydration"],
+    "headache": ["headache", "migraine"],
+    "concussion": ["concussion", "head injury"],
+    "sore throat": ["sore throat", "pharyngitis"],
+    "nausea": ["nausea", "vomiting"],
+    "abdominal pain": ["abdominal pain", "stomach pain"],
+}
+
+# 영어 canonical symptom + 영어 변형 표현
 SYMPTOM_RULES: dict[str, list[str]] = {
     "abdominal pain": [
         "abdominal pain",
@@ -81,8 +147,6 @@ SYMPTOM_RULES: dict[str, list[str]] = {
     ],
 }
 
-# 한국어 외상성 머리 충격 패턴
-# 확장 포인트: 충돌/낙상/교통사고 관련 표현 추가 시 여기만 수정
 KOREAN_HEAD_TRAUMA_PATTERNS: dict[str, str] = {
     "머리를 부딪": "concussion",
     "머리 부딪": "concussion",
@@ -97,7 +161,6 @@ KOREAN_HEAD_TRAUMA_PATTERNS: dict[str, str] = {
     "머리 외상": "concussion",
 }
 
-# 영어 외상성 머리 충격 패턴
 ENGLISH_HEAD_TRAUMA_PATTERNS: dict[str, str] = {
     "hit my head": "concussion",
     "bumped my head": "concussion",
@@ -106,8 +169,6 @@ ENGLISH_HEAD_TRAUMA_PATTERNS: dict[str, str] = {
     "hurt my head": "concussion",
 }
 
-# 한국어 일반 증상 룰
-# 확장 포인트: 새 증상 추가 시 if/elif 대신 여기만 수정
 KOREAN_RULES: dict[str, str] = {
     "복통": "abdominal pain",
     "배가 아파": "abdominal pain",

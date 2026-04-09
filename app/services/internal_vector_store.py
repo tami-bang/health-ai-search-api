@@ -9,19 +9,18 @@ from app.core.settings import RAG_CHUNK_OVERLAP  # chunk overlap 설정
 from app.core.settings import RAG_CHUNK_SIZE  # chunk size 설정
 from app.core.settings import RAG_INTERNAL_TOP_K  # 내부 검색 top-k 설정
 from app.core.settings import RAG_MIN_SCORE  # 내부 검색 최소 score
-from app.data.internal_health_knowledge import INTERNAL_HEALTH_DOCUMENTS  # 내부 원문 문서
+from app.repositories.internal_knowledge_repository import load_internal_health_documents  # 내부 지식 로드
 from app.services.ai_ranker import get_embedding_model  # 공용 임베딩 모델 재사용
 from app.services.chunker import chunk_text  # 문서 chunking
-
 
 _VECTOR_ROWS: list[dict[str, Any]] = []
 _VECTOR_MATRIX: np.ndarray | None = None
 
-
 def _build_chunk_rows() -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
+    documents = load_internal_health_documents()
 
-    for document in INTERNAL_HEALTH_DOCUMENTS:
+    for document in documents:
         document_id = (document.get("document_id") or "").strip()
         title = (document.get("title") or "").strip()
         source = (document.get("source") or "InternalKnowledge").strip()
@@ -52,7 +51,6 @@ def _build_chunk_rows() -> list[dict[str, Any]]:
 
     return rows
 
-
 def build_internal_vector_index() -> None:
     global _VECTOR_ROWS, _VECTOR_MATRIX
 
@@ -74,6 +72,8 @@ def build_internal_vector_index() -> None:
     _VECTOR_ROWS = rows
     _VECTOR_MATRIX = matrix
 
+def is_vector_index_ready() -> bool:
+    return _VECTOR_MATRIX is not None and len(_VECTOR_ROWS) > 0
 
 def search_internal_knowledge(
     query: str,
@@ -111,8 +111,7 @@ def search_internal_knowledge(
         row = dict(_VECTOR_ROWS[int(index)])
         document_id = str(row.get("document_id") or "")
 
-        # 같은 문서 chunk가 너무 많이 뜨는 걸 막아
-        # 사용자에게는 문서 다양성이 더 중요하므로 문서 단위 dedupe를 먼저 건다.
+        # 같은 문서 chunk가 연속으로 많이 뜨면 결과 다양성이 떨어져서 문서 단위로 먼저 dedupe
         if document_id in seen_document_ids:
             continue
 
