@@ -41,6 +41,7 @@ dist/
 # Model / local data
 models/
 data/cache/
+artifacts/
 *.pkl
 *.joblib
 
