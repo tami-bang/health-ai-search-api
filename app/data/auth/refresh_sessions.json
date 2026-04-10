@@ -1,0 +1,10 @@
+[
+  {
+    "jti": "ha6e1H11lt2SvwlRqYDnJg",
+    "user_id": "user-aa35076003914b5da84ae53f6d374bfa",
+    "token_type": "refresh",
+    "is_revoked": false,
+    "created_at": "2026-04-10T01:29:58.983402+00:00",
+    "expires_at": null
+  }
+]

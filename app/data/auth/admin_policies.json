@@ -1,13 +1,20 @@
 {
   "policies": {
-    "allow_public_signup": true,
-    "require_email_verification": false,
+    "allow_public_signup": false,
+    "require_email_verification": true,
+    "allow_operator_user_creation": true,
+    "allow_admin_policy_update": true,
+    "audit_log_default_limit": 100,
+    "max_audit_log_limit": 500,
+    "service_mode": "production-ready",
+    "healthcare_domain_guard_enabled": true,
+    "ai_summary_enabled": true,
+    "rag_enabled": true,
     "allow_operator_account_creation": true,
     "enable_ai_summary": true,
     "enable_external_search": true,
     "enable_internal_search": true,
     "enable_triage": true,
     "maintenance_mode": false
-  },
-  "updated_at": null
+  }
 }

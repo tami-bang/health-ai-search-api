@@ -179,3 +179,28 @@ class AdminPolicyUpdateRequest(BaseModel):
 
 class AuditLogQuery(BaseModel):
     limit: int = Field(default=100, ge=1, le=500)
+
+
+class AuditLogItem(BaseModel):
+    audit_log_id: str
+    actor_user_id: str = ""
+    actor_username: str = ""
+    action: str = ""
+    target_type: str = ""
+    target_id: str = ""
+    detail: dict[str, Any] = Field(default_factory=dict)
+    created_at: str = ""
+
+
+class AdminUserListResponse(BaseModel):
+    count: int
+    users: list[PublicUser] = Field(default_factory=list)
+
+
+class AdminPolicyResponse(BaseModel):
+    policies: dict[str, Any] = Field(default_factory=dict)
+
+
+class AdminAuditLogListResponse(BaseModel):
+    count: int
+    logs: list[AuditLogItem] = Field(default_factory=list)
