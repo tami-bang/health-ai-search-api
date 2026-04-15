@@ -1,12 +1,12 @@
 # app/core/triage_rules.py
-from __future__ import annotations  # 최신 타입 힌트 문법 지원
+from __future__ import annotations  # 용도: 최신 타입 힌트 문법 지원
 
-TRIAGE_LEVEL_RED = "red"
-TRIAGE_LEVEL_YELLOW = "yellow"
-TRIAGE_LEVEL_GREEN = "green"
+TRIAGE_LEVEL_RED = "red"  # 용도: red 레벨 상수
+TRIAGE_LEVEL_YELLOW = "yellow"  # 용도: yellow 레벨 상수
+TRIAGE_LEVEL_GREEN = "green"  # 용도: green 레벨 상수
 
-TRIAGE_SUPPORTED_LANGUAGES = {"ko", "en"}
-TRIAGE_DEFAULT_LANGUAGE = "en"
+TRIAGE_SUPPORTED_LANGUAGES = {"ko", "en"}  # 용도: triage 지원 언어
+TRIAGE_DEFAULT_LANGUAGE = "en"  # 용도: 기본 triage 메시지 언어
 
 TRIAGE_MESSAGE_MAP_BY_LANGUAGE: dict[str, dict[str, str]] = {
     "ko": {
@@ -39,7 +39,7 @@ TRIAGE_MESSAGE_MAP_BY_LANGUAGE: dict[str, dict[str, str]] = {
 TRIAGE_SCORE_THRESHOLDS: dict[str, int] = {
     TRIAGE_LEVEL_RED: 4,
     TRIAGE_LEVEL_YELLOW: 2,
-}
+}  # 용도: triage 점수 임계값
 
 TRIAGE_RULE_GROUPS: dict[str, dict[str, list[dict[str, object]]]] = {
     "ko": {
@@ -83,6 +83,15 @@ TRIAGE_RULE_GROUPS: dict[str, dict[str, list[dict[str, object]]]] = {
             {"pattern": "객혈", "score": 4},
             {"pattern": "혈변", "score": 4},
             {"pattern": "검은 변", "score": 4},
+            {"pattern": "코피가 안 멈춰", "score": 4},
+            {"pattern": "코피가 멈추지", "score": 4},
+            {"pattern": "출혈이 안 멈춰", "score": 4},
+            {"pattern": "출혈이 멈추지", "score": 4},
+            {"pattern": "피가 안 멈춰", "score": 4},
+            {"pattern": "피가 멈추지", "score": 4},
+            {"pattern": "코피가 계속", "score": 3},
+            {"pattern": "코피가 삼십분째", "score": 3},
+            {"pattern": "코피가 30분째", "score": 3},
         ],
         "trauma_red_flags": [
             {"pattern": "머리 다친", "score": 4},
@@ -117,10 +126,21 @@ TRIAGE_RULE_GROUPS: dict[str, dict[str, list[dict[str, object]]]] = {
             {"pattern": "고열", "score": 2},
             {"pattern": "열이 나", "score": 1},
         ],
+        "eye_warning": [
+            {"pattern": "눈 충혈", "score": 1},
+            {"pattern": "눈이 충혈", "score": 1},
+            {"pattern": "눈이 빨개", "score": 1},
+            {"pattern": "눈이 붉어", "score": 1},
+            {"pattern": "눈이 아프", "score": 2},
+            {"pattern": "시야가 흐려", "score": 3},
+            {"pattern": "눈부심", "score": 2},
+        ],
         "progression_warning": [
             {"pattern": "악화", "score": 2},
             {"pattern": "심해지", "score": 2},
             {"pattern": "계속 아파", "score": 2},
+            {"pattern": "이틀째", "score": 1},
+            {"pattern": "며칠째", "score": 1},
         ],
     },
     "en": {
@@ -151,6 +171,11 @@ TRIAGE_RULE_GROUPS: dict[str, dict[str, list[dict[str, object]]]] = {
             {"pattern": "vomiting blood", "score": 4},
             {"pattern": "bloody stool", "score": 4},
             {"pattern": "black stool", "score": 4},
+            {"pattern": "nosebleed won't stop", "score": 4},
+            {"pattern": "nose bleed won't stop", "score": 4},
+            {"pattern": "persistent bleeding", "score": 4},
+            {"pattern": "bleeding for 30 minutes", "score": 4},
+            {"pattern": "nosebleed for 30 minutes", "score": 4},
         ],
         "trauma_red_flags": [
             {"pattern": "head injury", "score": 4},
@@ -178,10 +203,21 @@ TRIAGE_RULE_GROUPS: dict[str, dict[str, list[dict[str, object]]]] = {
             {"pattern": "fever for two days", "score": 2},
             {"pattern": "fever for several days", "score": 2},
         ],
+        "eye_warning": [
+            {"pattern": "eye redness", "score": 1},
+            {"pattern": "red eye", "score": 1},
+            {"pattern": "bloodshot eyes", "score": 1},
+            {"pattern": "bloodshot eye", "score": 1},
+            {"pattern": "eye pain", "score": 2},
+            {"pattern": "blurred vision", "score": 3},
+            {"pattern": "light sensitivity", "score": 2},
+        ],
         "progression_warning": [
             {"pattern": "getting worse", "score": 2},
             {"pattern": "worsening", "score": 2},
             {"pattern": "ongoing cough", "score": 1},
+            {"pattern": "for two days", "score": 1},
+            {"pattern": "for several days", "score": 1},
         ],
     },
 }

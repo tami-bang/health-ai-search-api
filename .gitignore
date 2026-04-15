@@ -40,7 +40,6 @@ dist/
 
 # Model / local data
 models/
-data/cache/
 artifacts/
 *.pkl
 *.joblib
@@ -52,3 +51,22 @@ huggingface/
 # SQLite
 *.db
 *.sqlite3
+
+# Runtime auth data
+app/data/auth/audit_logs.json
+app/data/auth/refresh_sessions.json
+app/data/auth/users.json
+
+# Runtime cache / generated data
+data/cache/
+app/data/cache/
+app/data/external_cache/
+app/data/vector_store/
+app/data/embeddings/
+
+# Internal knowledge / generated knowledge data
+app/data/internal_health_docs.json
+
+# Temporary files
+tmp/
+temp/

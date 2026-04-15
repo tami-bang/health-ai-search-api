@@ -1,32 +1,19 @@
 # app/core/symptom_rules.py
-from __future__ import annotations  # 최신 타입 힌트 문법 지원
+from __future__ import annotations  # 용도: 최신 타입 힌트 문법 지원
 
-# 공통 설정값
-DEFAULT_NOTICE = "This service is for informational purposes only and is not a medical diagnosis."
-MEDLINEPLUS_SOURCE_NAME = "MedlinePlus"
-MEDLINEPLUS_RETMAX = 5
+DEFAULT_NOTICE = "This service is for informational purposes only and is not a medical diagnosis."  # 용도: 공통 안내 문구
+MEDLINEPLUS_SOURCE_NAME = "MedlinePlus"  # 용도: 외부 검색 소스 표시명
+MEDLINEPLUS_RETMAX = 5  # 용도: 외부 검색 최대 결과 수
 
-# 정규화 / fallback 기준값
-NORMALIZER_SEMANTIC_THRESHOLD = 0.58
-NORMALIZER_ML_CONFIDENCE_THRESHOLD = 0.60
-AI_FALLBACK_MIN_TOKEN_COUNT = 3
-AI_FALLBACK_MIN_CONFIDENCE = 0.35
+NORMALIZER_SEMANTIC_THRESHOLD = 0.58  # 용도: semantic 정규화 임계값
+NORMALIZER_ML_CONFIDENCE_THRESHOLD = 0.60  # 용도: ML 정규화 임계값
+AI_FALLBACK_MIN_TOKEN_COUNT = 3  # 용도: AI fallback 최소 토큰 수
+AI_FALLBACK_MIN_CONFIDENCE = 0.35  # 용도: AI fallback 최소 confidence
 
-# meta에 predicted_label을 노출할 최소 confidence
-# 너무 낮은 예측값은 내부 참고만 하고 사용자 응답에는 숨긴다.
-PREDICTED_LABEL_DISPLAY_MIN_CONFIDENCE = 0.20
+PREDICTED_LABEL_DISPLAY_MIN_CONFIDENCE = 0.20  # 용도: meta predicted_label 노출 최소 confidence
+NORMALIZED_QUERY_SEPARATOR = " | "  # 용도: 복합 증상 normalized query 구분자
+MAX_NORMALIZED_SYMPTOMS = 3  # 용도: 한 번에 실을 최대 증상 수
 
-# 복합 증상 normalized_query 구분자
-# "abdominal pain" 같은 canonical phrase와 충돌하지 않도록 공백 대신 명시적 구분자를 쓴다.
-NORMALIZED_QUERY_SEPARATOR = " | "
-
-# 한 번에 너무 많은 증상을 싣지 않도록 상한을 둔다.
-MAX_NORMALIZED_SYMPTOMS = 3
-
-# 증상별 검색 확장 키워드
-# 확장 포인트:
-# - 실제 검색 품질이 안 좋은 증상만 여기 추가하면 됨
-# - retriever에서 이 매핑을 참고해 검색 query를 넓힌다
 SYMPTOM_SEARCH_EXPANSIONS: dict[str, list[str]] = {
     "runny nose": [
         "runny nose",
@@ -74,9 +61,23 @@ SYMPTOM_SEARCH_EXPANSIONS: dict[str, list[str]] = {
         "stomach pain",
         "digestive problems",
     ],
+    "nosebleed": [
+        "nosebleed",
+        "nose bleed",
+        "epistaxis",
+        "bloody nose",
+    ],
+    "eye redness": [
+        "eye redness",
+        "red eye",
+        "red eyes",
+        "bloodshot eye",
+        "bloodshot eyes",
+        "conjunctivitis",
+        "pink eye",
+    ],
 }
 
-# broad/general 문서보다 증상 직접 관련 문서를 우선시키기 위한 힌트
 SYMPTOM_PRIORITY_KEYWORDS: dict[str, list[str]] = {
     "runny nose": ["runny nose", "rhinitis", "allergy", "cold"],
     "cough": ["cough", "bronchitis", "cold"],
@@ -87,9 +88,16 @@ SYMPTOM_PRIORITY_KEYWORDS: dict[str, list[str]] = {
     "sore throat": ["sore throat", "pharyngitis"],
     "nausea": ["nausea", "vomiting"],
     "abdominal pain": ["abdominal pain", "stomach pain"],
+    "nosebleed": ["nosebleed", "nose bleed", "epistaxis", "bloody nose"],
+    "eye redness": [
+        "eye redness",
+        "red eye",
+        "bloodshot eyes",
+        "conjunctivitis",
+        "pink eye",
+    ],
 }
 
-# 영어 canonical symptom + 영어 변형 표현
 SYMPTOM_RULES: dict[str, list[str]] = {
     "abdominal pain": [
         "abdominal pain",
@@ -157,6 +165,28 @@ SYMPTOM_RULES: dict[str, list[str]] = {
         "throwing up",
         "want to vomit",
     ],
+    "nosebleed": [
+        "nosebleed",
+        "nose bleed",
+        "epistaxis",
+        "bloody nose",
+        "my nose is bleeding",
+        "my nose won't stop bleeding",
+        "bleeding from my nose",
+    ],
+    "eye redness": [
+        "eye redness",
+        "red eye",
+        "red eyes",
+        "bloodshot eye",
+        "bloodshot eyes",
+        "pink eye",
+        "conjunctivitis",
+        "my eyes are red",
+        "my eye is red",
+        "my eyes are bloodshot",
+        "my eye is bloodshot",
+    ],
 }
 
 KOREAN_HEAD_TRAUMA_PATTERNS: dict[str, str] = {
@@ -202,4 +232,13 @@ KOREAN_RULES: dict[str, str] = {
     "메스꺼움": "nausea",
     "구토": "nausea",
     "토할 것 같": "nausea",
+    "코피": "nosebleed",
+    "비출혈": "nosebleed",
+    "코에서 피": "nosebleed",
+    "눈 충혈": "eye redness",
+    "눈이 충혈": "eye redness",
+    "눈이 빨개": "eye redness",
+    "눈이 붉어": "eye redness",
+    "충혈된 눈": "eye redness",
+    "충혈상태": "eye redness",
 }

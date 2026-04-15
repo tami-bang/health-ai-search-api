@@ -1,22 +1,40 @@
 # app/services/retriever.py
-from __future__ import annotations  # 최신 타입 힌트 문법 지원
+from __future__ import annotations  # 용도: 최신 타입 힌트 문법 지원
 
-import logging  # 실행 로그 기록
-from concurrent.futures import ThreadPoolExecutor  # 병렬 검색 실행
-from concurrent.futures import as_completed  # 병렬 완료 순회
-from typing import Any  # dict 타입 힌트 보조
-from typing import Callable  # 검색 함수 타입 힌트
+import logging  # 용도: 실행 로그 기록
+from concurrent.futures import ThreadPoolExecutor  # 용도: 병렬 검색 실행
+from concurrent.futures import as_completed  # 용도: 병렬 완료 순회
+from typing import Any  # 용도: dict 타입 힌트 보조
+from typing import Callable  # 용도: 검색 함수 타입 힌트
 
-from app.core.settings import ENABLE_EXTERNAL_SEARCH  # 외부 검색 사용 여부
-from app.core.settings import ENABLE_INTERNAL_SEARCH  # 내부 검색 사용 여부
-from app.core.settings import RETRIEVAL_MAX_WORKERS  # 병렬 검색 worker 수
-from app.core.symptom_rules import NORMALIZED_QUERY_SEPARATOR  # 복합 증상 구분자
-from app.core.symptom_rules import SYMPTOM_PRIORITY_KEYWORDS  # 증상별 우선 키워드
-from app.core.symptom_rules import SYMPTOM_SEARCH_EXPANSIONS  # 증상별 검색 확장어
-from app.services.internal_vector_store import search_internal_knowledge  # 내부 벡터 검색
-from app.services.medlineplus_client import search_medlineplus  # 외부 실시간 검색
+from app.core.settings import ENABLE_EXTERNAL_SEARCH  # 용도: 외부 검색 사용 여부
+from app.core.settings import ENABLE_INTERNAL_SEARCH  # 용도: 내부 검색 사용 여부
+from app.core.settings import RETRIEVAL_MAX_WORKERS  # 용도: 병렬 검색 worker 수
+from app.core.symptom_rules import NORMALIZED_QUERY_SEPARATOR  # 용도: 복합 증상 구분자
+from app.core.symptom_rules import SYMPTOM_PRIORITY_KEYWORDS  # 용도: 증상별 우선 키워드
+from app.core.symptom_rules import SYMPTOM_SEARCH_EXPANSIONS  # 용도: 증상별 검색 확장어
+from app.services.internal_vector_store import search_internal_knowledge  # 용도: 내부 벡터 검색
+from app.services.medlineplus_client import search_medlineplus  # 용도: 외부 실시간 검색
 
 logger = logging.getLogger(__name__)
+
+MIN_BACKOFF_TOKEN_LENGTH = 3  # 용도: fallback 토큰 최소 길이
+BACKOFF_STOPWORDS: set[str] = {
+    "the",
+    "and",
+    "for",
+    "with",
+    "from",
+    "have",
+    "been",
+    "my",
+    "your",
+    "is",
+    "are",
+    "eye",
+    "eyes",
+    "nose",
+}  # 용도: 과도하게 일반적인 fallback 토큰 제외
 
 
 def _parse_symptom_keys(query: str) -> list[str]:
@@ -48,6 +66,26 @@ def _append_unique_query(
     expanded_queries.append(normalized_candidate)
 
 
+def _build_backoff_queries(symptom_key: str) -> list[str]:
+    tokens = [
+        token.strip().lower()
+        for token in str(symptom_key).split()
+        if token
+    ]
+    if len(tokens) <= 1:
+        return []
+
+    backoff_queries: list[str] = []
+    for token in tokens:
+        if len(token) < MIN_BACKOFF_TOKEN_LENGTH:
+            continue
+        if token in BACKOFF_STOPWORDS:
+            continue
+        backoff_queries.append(token)
+
+    return backoff_queries
+
+
 def _build_search_queries(query: str) -> list[str]:
     symptom_keys = _parse_symptom_keys(query)
     if not symptom_keys:
@@ -55,7 +93,6 @@ def _build_search_queries(query: str) -> list[str]:
 
     expanded_queries: list[str] = []
 
-    # 복합 증상 전체 표현도 먼저 넣어 복합 질환 문서를 잡는다.
     if len(symptom_keys) > 1:
         _append_unique_query(expanded_queries, " ".join(symptom_keys))
 
@@ -65,6 +102,9 @@ def _build_search_queries(query: str) -> list[str]:
         mapped_queries = SYMPTOM_SEARCH_EXPANSIONS.get(symptom_key, [])
         for item in mapped_queries:
             _append_unique_query(expanded_queries, item)
+
+        for backoff_query in _build_backoff_queries(symptom_key):
+            _append_unique_query(expanded_queries, backoff_query)
 
     return expanded_queries
 
@@ -239,6 +279,7 @@ def retrieve_health_topics(query: str) -> list[dict[str, Any]]:
     - 내부 지식: vector search
     - 외부 지식: MedlinePlus live search
     - 복합 증상 query expansion 적용
+    - 증상별 확장어 + 안전한 backoff token을 함께 사용
     - 내부/외부 검색을 병렬 처리해 전체 latency 편차를 줄인다
     """
     cleaned_query = (query or "").strip()
@@ -246,6 +287,9 @@ def retrieve_health_topics(query: str) -> list[dict[str, Any]]:
         return []
 
     search_queries = _build_search_queries(cleaned_query)
+    if not search_queries:
+        search_queries = [cleaned_query.lower()]
+
     tasks = _build_search_tasks(search_queries)
     merged_items = _run_parallel_searches(tasks)
 
