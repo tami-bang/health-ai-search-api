@@ -6,7 +6,7 @@ A FastAPI-based healthcare AI search API for symptom-driven queries
 
 ---
 
-## 📌 Overview
+## Overview
 
 `health-ai-search-api`는 사용자의 증상 입력을 기반으로  
 정규화 → 외부 의료 데이터 검색 → AI 재정렬 → 응답 가공 → 다국어 처리까지 수행하는  
@@ -16,29 +16,29 @@ This project processes symptom input through normalization, external medical dat
 
 ---
 
-## 🚀 Key Features
+## Key Features
 
-- 🔍 **Symptom-based Search**  
+- **Symptom-based Search**  
   자연어 증상 입력 처리 (예: `"열이 나고 기침이 있어요"`)
 
-- 🧠 **Query Normalization**  
+- **Query Normalization**  
   입력 증상을 표준 의료 키워드로 변환
 
-- 🌐 **External Medical Data Retrieval**  
+- **External Medical Data Retrieval**  
   MedlinePlus API 기반 건강 정보 검색
 
-- 🤖 **AI Reranking**  
+- **AI Reranking**  
   검색 결과를 AI 모델로 재정렬하여 정확도 향상
 
-- 📝 **Response Formatting**  
+- **Response Formatting**  
   요약 + 구조화된 응답 생성
 
-- 🌍 **Multilingual Support**  
+- **Multilingual Support**  
   한글 ↔ 영어 자동 번역
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```text
 User Query
@@ -69,7 +69,7 @@ User Query
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```text
 app/
@@ -103,7 +103,7 @@ app/
 
 ---
 
-## ⚙️ Tech Stack
+## Tech Stack
 
 ### Backend
 - FastAPI
@@ -134,7 +134,7 @@ pip install -r requirements.txt
 
 ---
 
-## ▶️ Run Server
+## Run Server
 
 ```bash
 uvicorn app.main:app --reload
@@ -145,7 +145,7 @@ http://127.0.0.1:8000/docs
 
 ---
 
-## 📡 API Example
+## API Example
 
 ### Description
 
@@ -174,7 +174,7 @@ POST /search?query=감기
 
 ---
 
-## 💡 Design Focus
+## Design Focus
 
 - External + Internal + Vector 기반 Hybrid Retrieval 구조  
   → 외부 API 의존도를 낮추고 검색 품질을 안정화하기 위해 설계
@@ -193,7 +193,7 @@ POST /search?query=감기
 
 ---
 
-## 🧠 What I Solved
+## What I Solved
 
 - 자연어 증상 입력과 실제 의료 정보 간의 불일치 문제 해결
 - 외부 API 결과의 품질 편차를 AI reranking으로 보완
@@ -202,7 +202,7 @@ POST /search?query=감기
 
 ---
 
-## 📈 Future Improvements
+## Future Improvements
 
 - RAG 구조 확장 (Vector DB + Embedding)
 - 증상 분류 모델 고도화
@@ -210,6 +210,6 @@ POST /search?query=감기
 
 ---
 
-## 👤 Author
+## Author
 
 GitHub: https://github.com/tami-bang
