@@ -1,7 +1,7 @@
 {
   "policies": {
-    "allow_public_signup": false,
-    "require_email_verification": true,
+    "allow_public_signup": true,
+    "require_email_verification": false,
     "allow_operator_user_creation": true,
     "allow_admin_policy_update": true,
     "audit_log_default_limit": 100,

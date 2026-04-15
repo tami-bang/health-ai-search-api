@@ -6,5 +6,21 @@
     "is_revoked": false,
     "created_at": "2026-04-10T01:29:58.983402+00:00",
     "expires_at": null
+  },
+  {
+    "jti": "Ln44da54ZaGGHpg7O47gOw",
+    "user_id": "user-a48a22be18be427a937cfa2d2f052cb9",
+    "token_type": "refresh",
+    "is_revoked": true,
+    "created_at": "2026-04-15T08:19:52.312294+00:00",
+    "expires_at": null
+  },
+  {
+    "jti": "nkkBCrf8j73vuUs1WjEPwA",
+    "user_id": "user-a48a22be18be427a937cfa2d2f052cb9",
+    "token_type": "refresh",
+    "is_revoked": false,
+    "created_at": "2026-04-15T08:55:58.837751+00:00",
+    "expires_at": null
   }
 ]

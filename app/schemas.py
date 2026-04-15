@@ -1,4 +1,3 @@
-# app/schemas.py
 from __future__ import annotations  # 용도: 최신 타입 힌트 문법 지원
 
 from typing import Any  # 용도: 가변 debug 필드 타입 정의
@@ -9,10 +8,17 @@ from pydantic import Field  # 용도: 필드 기본값 및 제약 정의
 
 
 class TopicItem(BaseModel):
+    # 프론트 호환 필드
+    id: str
     title: str = ""
-    summary: str | None = None
+    snippet: str | None = None
     url: str = ""
     source: str | None = None
+    category: str | None = None
+    relevance_score: float | None = None
+
+    # 기존 백엔드 고도화 필드
+    summary: str | None = None
     document_type: str | None = None
     semantic_score: float | None = None
     keyword_boost: float | None = None
