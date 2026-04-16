@@ -1,4 +1,3 @@
-# app/services/symptom_normalizer.py
 from __future__ import annotations  # 용도: 최신 타입 힌트 문법 지원
 
 import logging  # 용도: 실행 로그 기록
@@ -23,7 +22,39 @@ logger = logging.getLogger(__name__)
 FORCE_SYMPTOM_RULES: dict[str, str] = {
     "비출혈": "nosebleed",
     "epistaxis": "nosebleed",
+    "요통": "low back pain",
 }  # 용도: 모호도 낮은 직접 의학 용어만 강제 매핑
+
+DIRECT_KOREAN_ALIAS_RULES: dict[str, str] = {
+    "허리가아파": "low back pain",
+    "허리아파": "low back pain",
+    "허리통증": "low back pain",
+    "허리 아파": "low back pain",
+    "허리가 아파": "low back pain",
+    "허리 아프": "low back pain",
+    "허리가 아프": "low back pain",
+    "허리 뻐근": "low back pain",
+    "허리가 뻐근": "low back pain",
+    "허리 결려": "low back pain",
+    "허리가 결려": "low back pain",
+    "허리 쑤셔": "low back pain",
+    "허리가 쑤셔": "low back pain",
+    "허리쪽 통증": "low back pain",
+    "허리 통증": "low back pain",
+    "요통": "low back pain",
+}  # 용도: 한국어 붙여쓰기/구어체 입력 직접 보정
+
+DIRECT_ENGLISH_ALIAS_RULES: dict[str, str] = {
+    "my back hurts": "low back pain",
+    "back hurts": "low back pain",
+    "my lower back hurts": "low back pain",
+    "lower back hurts": "low back pain",
+    "back pain": "low back pain",
+    "lower back pain": "low back pain",
+    "low back pain": "low back pain",
+    "lumbar pain": "low back pain",
+    "backache": "low back pain",
+}  # 용도: 영어 입력 직접 보정
 
 DURATION_NOISE_PATTERNS: tuple[str, ...] = (
     r"\b\d+\s*분째\b",
@@ -51,6 +82,17 @@ def _normalize_text(text: str) -> str:
     return re.sub(r"\s+", " ", str(text or "")).strip().lower()
 
 
+def _compact_text(text: str) -> str:
+    """
+    붙여쓰기/띄어쓰기 차이 대응용 압축 텍스트
+    예:
+    '허리가 아파요' -> '허리가아파요'
+    'low-back pain' -> 'lowbackpain'
+    """
+    cleaned_text = _normalize_text(text)
+    return re.sub(r"[\W_]+", "", cleaned_text)
+
+
 def _remove_noise_patterns(text: str) -> str:
     cleaned_text = _normalize_text(text)
 
@@ -65,11 +107,44 @@ def _remove_noise_patterns(text: str) -> str:
 
 def _resolve_forced_symptom(text: str) -> str | None:
     cleaned_text = _normalize_text(text)
+    compact_text = _compact_text(text)
     if not cleaned_text:
         return None
 
     for keyword, canonical in FORCE_SYMPTOM_RULES.items():
-        if keyword in cleaned_text:
+        if _normalize_text(keyword) in cleaned_text:
+            return canonical
+        if _compact_text(keyword) and _compact_text(keyword) in compact_text:
+            return canonical
+
+    return None
+
+
+def _resolve_direct_alias_symptom(
+    original_query: str,
+    internal_query: str,
+) -> str | None:
+    original_text = _normalize_text(original_query)
+    original_compact = _compact_text(original_query)
+    internal_text = _normalize_text(internal_query)
+    internal_compact = _compact_text(internal_query)
+
+    for keyword, canonical in DIRECT_KOREAN_ALIAS_RULES.items():
+        normalized_keyword = _normalize_text(keyword)
+        compact_keyword = _compact_text(keyword)
+
+        if normalized_keyword and normalized_keyword in original_text:
+            return canonical
+        if compact_keyword and compact_keyword in original_compact:
+            return canonical
+
+    for keyword, canonical in DIRECT_ENGLISH_ALIAS_RULES.items():
+        normalized_keyword = _normalize_text(keyword)
+        compact_keyword = _compact_text(keyword)
+
+        if normalized_keyword and normalized_keyword in internal_text:
+            return canonical
+        if compact_keyword and compact_keyword in internal_compact:
             return canonical
 
     return None
@@ -112,9 +187,22 @@ def _get_english_variant_mapping() -> dict[str, str]:
     return mapping
 
 
+@lru_cache(maxsize=1)
+def _get_compact_korean_rule_mapping() -> dict[str, str]:
+    mapping: dict[str, str] = {}
+
+    for keyword, canonical in KOREAN_RULES.items():
+        compact_keyword = _compact_text(keyword)
+        if compact_keyword:
+            mapping[compact_keyword] = canonical
+
+    return mapping
+
+
 def warmup_normalizer() -> None:
     _ = get_symptom_prototype_embeddings()
     _ = _get_english_variant_mapping()
+    _ = _get_compact_korean_rule_mapping()
 
 
 def _collect_matches_from_mapping(
@@ -131,6 +219,25 @@ def _collect_matches_from_mapping(
         cleaned_keyword = _normalize_text(str(keyword))
         keyword_index = cleaned_text.find(cleaned_keyword)
         if keyword_index >= 0:
+            matches.append((keyword_index, canonical))
+
+    return matches
+
+
+def _collect_matches_from_compact_mapping(
+    text: str,
+    mapping: dict[str, str],
+) -> list[tuple[int, str]]:
+    compact_query = _compact_text(text)
+    if not compact_query:
+        return []
+
+    matches: list[tuple[int, str]] = []
+
+    for keyword, canonical in mapping.items():
+        compact_keyword = _compact_text(str(keyword))
+        keyword_index = compact_query.find(compact_keyword)
+        if compact_keyword and keyword_index >= 0:
             matches.append((keyword_index, canonical))
 
     return matches
@@ -196,10 +303,34 @@ def _build_forced_result(
     return forced_symptom, "force_rule", 1.0
 
 
+def _build_direct_alias_result(
+    original_query: str,
+    internal_query: str,
+) -> tuple[str, str, float] | None:
+    direct_alias_symptom = _resolve_direct_alias_symptom(
+        original_query=original_query,
+        internal_query=internal_query,
+    )
+    if not direct_alias_symptom:
+        return None
+
+    logger.info(
+        "[NORMALIZER] direct alias matched original=%s internal=%s canonical=%s",
+        original_query,
+        internal_query,
+        direct_alias_symptom,
+    )
+    return direct_alias_symptom, "direct_alias_rule", 1.0
+
+
 def _match_korean_rules(original_query: str) -> tuple[str, str, float] | None:
     korean_matches = _collect_matches_from_mapping(
         original_query,
         KOREAN_RULES,
+    )
+    korean_compact_matches = _collect_matches_from_compact_mapping(
+        original_query,
+        _get_compact_korean_rule_mapping(),
     )
     trauma_matches = _collect_matches_from_mapping(
         original_query,
@@ -207,7 +338,7 @@ def _match_korean_rules(original_query: str) -> tuple[str, str, float] | None:
     )
 
     canonicals = _deduplicate_ordered_canonicals(
-        korean_matches + trauma_matches,
+        korean_matches + korean_compact_matches + trauma_matches,
     )
     return _build_rule_result(
         canonicals=canonicals,
@@ -245,10 +376,11 @@ def _match_ml_rule(internal_query: str) -> tuple[str, str, float] | None:
     if not predicted_label:
         return None
 
+    cleaned_predicted_label = _normalize_text(predicted_label)
     if confidence < NORMALIZER_ML_CONFIDENCE_THRESHOLD:
         return None
 
-    return predicted_label, "ml_classifier", round(confidence, 4)
+    return cleaned_predicted_label, "ml_classifier", round(confidence, 4)
 
 
 def _match_semantic_rule(
@@ -271,7 +403,7 @@ def _match_semantic_rule(
 
         scores = np.dot(prototype_embeddings, query_embedding)
         best_index = int(np.argmax(scores))
-        best_label = labels[best_index]
+        best_label = _normalize_text(labels[best_index])
         best_score = float(scores[best_index])
 
         if best_score >= NORMALIZER_SEMANTIC_THRESHOLD:
@@ -279,6 +411,35 @@ def _match_semantic_rule(
 
     except Exception as error:
         logger.warning("[NORMALIZER] semantic normalize skipped: %s", error)
+
+    return None
+
+
+def _build_back_pain_fallback(
+    original_query: str,
+    internal_query: str,
+) -> str | None:
+    original_text = _normalize_text(original_query)
+    original_compact = _compact_text(original_query)
+    internal_text = _normalize_text(internal_query)
+
+    if "허리" in original_text:
+        return "low back pain"
+
+    if any(keyword in original_compact for keyword in ("허리아파", "허리가아파", "허리통증", "요통")):
+        return "low back pain"
+
+    if "lower back" in internal_text:
+        return "low back pain"
+
+    if "back pain" in internal_text:
+        return "low back pain"
+
+    if "back hurts" in internal_text:
+        return "low back pain"
+
+    if "my back hurts" in internal_text:
+        return "low back pain"
 
     return None
 
@@ -295,6 +456,20 @@ def _build_fallback_result(
     if forced_symptom:
         return forced_symptom, "force_rule_fallback", 1.0
 
+    direct_alias_symptom = _resolve_direct_alias_symptom(
+        original_query=original_query,
+        internal_query=internal_query,
+    )
+    if direct_alias_symptom:
+        return direct_alias_symptom, "direct_alias_fallback", 1.0
+
+    back_pain_fallback = _build_back_pain_fallback(
+        original_query=original_query,
+        internal_query=internal_query,
+    )
+    if back_pain_fallback:
+        return back_pain_fallback, "back_pain_fallback", 1.0
+
     tokens = fallback_source.split()
     if tokens:
         return " ".join(tokens[:2]), "fallback_tokens", 0.0
@@ -309,13 +484,20 @@ def _match_cleaned_rules(
     cleaned_original = _remove_noise_patterns(original_query)
     cleaned_internal = _remove_noise_patterns(internal_query)
 
+    direct_alias_result = _build_direct_alias_result(
+        original_query=cleaned_original,
+        internal_query=cleaned_internal,
+    )
+    if direct_alias_result:
+        return direct_alias_result
+
     korean_rule_result = _match_korean_rules(cleaned_original)
     if korean_rule_result:
-        return cleaned_original and korean_rule_result
+        return korean_rule_result
 
     english_rule_result = _match_english_rules(cleaned_internal)
     if english_rule_result:
-        return cleaned_internal and english_rule_result
+        return english_rule_result
 
     return None
 
@@ -327,15 +509,17 @@ def normalize_symptom_query(
     """
     하이브리드 정규화
     1) 직접 의학 용어 강제 매핑
-    2) 원문 기준 한국어/외상 룰
-    3) 번역문 기준 영어/외상 룰
-    4) noise 제거 후 룰 재평가
-    5) ML classifier 기반 정규화
-    6) semantic 정규화
-    7) fallback
+    2) 직접 alias 보정
+    3) 원문 기준 한국어/외상 룰
+    4) 번역문 기준 영어/외상 룰
+    5) noise 제거 후 룰 재평가
+    6) ML classifier 기반 정규화
+    7) semantic 정규화
+    8) fallback
 
     핵심 전략:
-    - 특정 문장을 통째로 하드코딩하지 않고 canonical symptom 사전을 넓혀 대응한다.
+    - 원본 구조를 유지하면서 붙여쓰기/구어체/허리통증 계열만 보강한다.
+    - 특정 문장을 통째로 하드코딩하지 않고 canonical symptom 사전을 중심으로 처리한다.
     - 지속 시간/상태 표현은 제거한 뒤 룰을 한 번 더 평가해 유동성을 높인다.
     """
     original = _normalize_text(original_query)
@@ -350,6 +534,13 @@ def normalize_symptom_query(
     )
     if forced_result:
         return forced_result
+
+    direct_alias_result = _build_direct_alias_result(
+        original_query=original,
+        internal_query=internal,
+    )
+    if direct_alias_result:
+        return direct_alias_result
 
     korean_rule_result = _match_korean_rules(original)
     if korean_rule_result:

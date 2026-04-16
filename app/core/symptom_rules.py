@@ -1,4 +1,3 @@
-# app/core/symptom_rules.py
 from __future__ import annotations  # 용도: 최신 타입 힌트 문법 지원
 
 DEFAULT_NOTICE = "This service is for informational purposes only and is not a medical diagnosis."  # 용도: 공통 안내 문구
@@ -76,6 +75,15 @@ SYMPTOM_SEARCH_EXPANSIONS: dict[str, list[str]] = {
         "conjunctivitis",
         "pink eye",
     ],
+    "low back pain": [
+        "low back pain",
+        "back pain",
+        "lower back pain",
+        "lumbar pain",
+        "backache",
+        "posture",
+        "spine health",
+    ],
 }
 
 SYMPTOM_PRIORITY_KEYWORDS: dict[str, list[str]] = {
@@ -95,6 +103,14 @@ SYMPTOM_PRIORITY_KEYWORDS: dict[str, list[str]] = {
         "bloodshot eyes",
         "conjunctivitis",
         "pink eye",
+    ],
+    "low back pain": [
+        "low back pain",
+        "back pain",
+        "lower back pain",
+        "lumbar pain",
+        "backache",
+        "posture",
     ],
 }
 
@@ -187,6 +203,20 @@ SYMPTOM_RULES: dict[str, list[str]] = {
         "my eyes are bloodshot",
         "my eye is bloodshot",
     ],
+    "low back pain": [
+        "low back pain",
+        "back pain",
+        "lower back pain",
+        "low back hurts",
+        "my back hurts",
+        "my lower back hurts",
+        "lower back hurts",
+        "backache",
+        "lumbar pain",
+        "pain in my back",
+        "pain in my lower back",
+        "sore back",
+    ],
 }
 
 KOREAN_HEAD_TRAUMA_PATTERNS: dict[str, str] = {
@@ -241,4 +271,21 @@ KOREAN_RULES: dict[str, str] = {
     "눈이 붉어": "eye redness",
     "충혈된 눈": "eye redness",
     "충혈상태": "eye redness",
+    "허리": "low back pain",
+    "허리가 아파": "low back pain",
+    "허리가아파": "low back pain",
+    "허리가 아프": "low back pain",
+    "허리아파": "low back pain",
+    "허리아프": "low back pain",
+    "허리 통증": "low back pain",
+    "허리통증": "low back pain",
+    "요통": "low back pain",
+    "허리가 뻐근": "low back pain",
+    "허리 뻐근": "low back pain",
+    "허리가 결려": "low back pain",
+    "허리 결려": "low back pain",
+    "허리 쑤셔": "low back pain",
+    "허리가 쑤셔": "low back pain",
+    "허리 아픔": "low back pain",
+    "허리쪽 통증": "low back pain",
 }

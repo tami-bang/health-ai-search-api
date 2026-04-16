@@ -1,4 +1,3 @@
-# app/services/symptom_search_service.py
 from __future__ import annotations  # 용도: 최신 타입 힌트 문법 지원
 
 import logging  # 용도: 서비스 로그 기록
@@ -125,6 +124,47 @@ def _build_internal_query(
         source_lang="auto",
     )
     return translated.strip() if translated and translated.strip() else query
+
+
+def _build_translated_query(
+    validated_query: str,
+    detected_language: str,
+    internal_query: str,
+) -> str | None:
+    """
+    retriever 확장 시그니처에 넘길 translated_query 결정
+    - 한국어 입력일 때만 영어 내부 검색 보조 질의로 사용
+    - internal_query가 원문과 동일하면 중복 후보이므로 제외
+    """
+    if detected_language != "ko":
+        return None
+
+    cleaned_internal_query = str(internal_query or "").strip()
+    cleaned_validated_query = str(validated_query or "").strip()
+
+    if not cleaned_internal_query:
+        return None
+
+    if cleaned_internal_query.lower() == cleaned_validated_query.lower():
+        return None
+
+    return cleaned_internal_query
+
+
+def _retrieve_items(
+    query: str,
+    original_query: str,
+    translated_query: str | None,
+) -> list[dict[str, Any]]:
+    """
+    retriever 호출 어댑터
+    - 서비스 레이어에서 검색 파라미터 규격을 한 곳에서 관리
+    """
+    return retrieve_health_topics(
+        query=query,
+        original_query=original_query,
+        translated_query=translated_query,
+    )
 
 
 def _should_predict_label(internal_query: str) -> bool:
@@ -416,6 +456,7 @@ def search_symptom(
 
     detected_language = "en"
     internal_query = ""
+    translated_query: str | None = None
     normalized_query = ""
     normalize_method = ""
     normalize_score = 0.0
@@ -443,7 +484,7 @@ def search_symptom(
             original_query=validated_query,
             internal_query=normalization_input,
         )
-        search_query = normalized_query
+        search_query = normalized_query or validated_query
         timings["normalization_ms"] = _elapsed_ms(stage_started_at)
 
         stage_started_at = time.perf_counter()
@@ -452,6 +493,11 @@ def search_symptom(
             input_language=detected_language,
             normalized_query=normalized_query,
             normalize_method=normalize_method,
+        )
+        translated_query = _build_translated_query(
+            validated_query=validated_query,
+            detected_language=detected_language,
+            internal_query=internal_query,
         )
         timings["translation_ms"] = _elapsed_ms(stage_started_at)
 
@@ -475,6 +521,12 @@ def search_symptom(
             normalize_score,
         )
         logger.info(
+            "[SEARCH] translated query=%s internal query=%s detected_language=%s",
+            translated_query,
+            internal_query,
+            detected_language,
+        )
+        logger.info(
             "[SEARCH] triage integrated query=%s level=%s score=%s matched_patterns=%s",
             validated_query,
             triage_result.triage_level,
@@ -483,7 +535,11 @@ def search_symptom(
         )
 
         stage_started_at = time.perf_counter()
-        items = retrieve_health_topics(search_query)
+        items = _retrieve_items(
+            query=normalized_query or search_query or validated_query,
+            original_query=validated_query,
+            translated_query=translated_query,
+        )
         timings["retrieval_ms"] = _elapsed_ms(stage_started_at)
 
         stage_started_at = time.perf_counter()
@@ -508,10 +564,14 @@ def search_symptom(
             predicted_label=prediction_candidate_label,
             model_confidence=model_confidence,
         ):
-            search_query = prediction_candidate_label or search_query
+            search_query = prediction_candidate_label or search_query or validated_query
 
             stage_started_at = time.perf_counter()
-            items = retrieve_health_topics(search_query)
+            items = _retrieve_items(
+                query=search_query,
+                original_query=validated_query,
+                translated_query=translated_query,
+            )
             timings["retrieval_ms"] = round(
                 timings["retrieval_ms"] + _elapsed_ms(stage_started_at),
                 2,

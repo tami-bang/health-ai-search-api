@@ -5,15 +5,12 @@ from typing import Any  # 용도: 결과 아이템 타입 힌트 보조
 
 from app.core.symptom_rules import DEFAULT_NOTICE  # 용도: 공통 안내 문구
 
-
 DEFAULT_RESULT_CATEGORY = "general"
 
 
 def _generate_stable_id(item: dict[str, Any]) -> str:
     """
-    유지보수 포인트:
-    - 같은 문서는 항상 같은 ID를 유지해야 프론트 key/상세조회/캐싱에 유리하다.
-    - url + title 조합 기반 hash로 안정적인 식별자를 만든다.
+    같은 문서는 항상 같은 ID를 유지하도록 url + title 기반 안정 ID 생성
     """
     base = f"{item.get('url', '')}-{item.get('title', '')}"
     return hashlib.md5(base.encode("utf-8")).hexdigest()
@@ -21,9 +18,7 @@ def _generate_stable_id(item: dict[str, Any]) -> str:
 
 def _to_float(value: Any, default: float = 0.0) -> float:
     """
-    유지보수 포인트:
-    - 점수 필드는 None / 문자열 / 숫자가 섞일 수 있으므로 안전 변환을 분리한다.
-    - 확장 시 다른 점수 필드도 동일 함수로 재사용 가능하다.
+    점수 필드 안전 변환
     """
     try:
         if value is None:
@@ -35,9 +30,7 @@ def _to_float(value: Any, default: float = 0.0) -> float:
 
 def _normalize_category(item: dict[str, Any]) -> str:
     """
-    유지보수 포인트:
-    - category는 프론트 호환용 alias다.
-    - 기존 document_type이 없을 때만 기본값을 사용한다.
+    프론트 호환용 category alias
     """
     document_type = item.get("document_type")
     if document_type:
@@ -48,9 +41,7 @@ def _normalize_category(item: dict[str, Any]) -> str:
 
 def _build_display_fields(item: dict[str, Any]) -> dict[str, Any]:
     """
-    유지보수 포인트:
-    - 프론트가 바로 쓰는 표시용 필드를 분리했다.
-    - 프론트 구조가 바뀌면 이 함수만 우선 수정하면 된다.
+    프론트 표시용 필드 생성
     """
     return {
         "id": _generate_stable_id(item),
@@ -65,9 +56,7 @@ def _build_display_fields(item: dict[str, Any]) -> dict[str, Any]:
 
 def _build_analysis_fields(item: dict[str, Any]) -> dict[str, Any]:
     """
-    유지보수 포인트:
-    - 검색 품질 검증, 관리자 화면, 디버깅용 상세 필드를 유지한다.
-    - 백엔드 고도화 정보를 잃지 않기 위해 display 필드와 분리했다.
+    디버깅/분석용 상세 필드 유지
     """
     semantic_score = item.get("semantic_score")
     keyword_boost = item.get("keyword_boost")
@@ -79,16 +68,14 @@ def _build_analysis_fields(item: dict[str, Any]) -> dict[str, Any]:
         "semantic_score": round(_to_float(semantic_score), 4) if semantic_score is not None else None,
         "keyword_boost": round(_to_float(keyword_boost), 4) if keyword_boost is not None else None,
         "hybrid_score": round(_to_float(hybrid_score), 4) if hybrid_score is not None else None,
+        "retrieval_priority_boost": round(_to_float(item.get("retrieval_priority_boost"), 0.0), 4),
         "reranked_by": item.get("reranked_by"),
     }
 
 
 def _to_result_item(item: dict[str, Any]) -> dict[str, Any]:
     """
-    핵심 전략:
-    - 프론트 호환 필드와 기존 고도화 필드를 함께 내려준다.
-    - 프론트는 snippet/category/relevance_score를 사용하면 되고,
-      백엔드는 summary/hybrid_score 등 원본 분석 필드를 계속 활용할 수 있다.
+    프론트 호환 필드 + 분석 필드 결합
     """
     result_item = {}
     result_item.update(_build_display_fields(item))
@@ -152,11 +139,6 @@ def _build_results_bundle(
     summary_included: bool,
     summary_debug: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    """
-    유지보수 포인트:
-    - results/top_result/related_topics 조립을 분리해 응답 구성을 명확히 했다.
-    - related_topics 규칙이 바뀌면 이 함수에서만 수정하면 된다.
-    """
     results = [_to_result_item(item) for item in items]
     top_result = results[0] if results else None
 

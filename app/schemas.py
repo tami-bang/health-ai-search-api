@@ -79,21 +79,42 @@ class SearchRequest(BaseModel):
 
 
 class TriageRequest(BaseModel):
-    query: str = Field(
-        ...,
+    # 기존 단일 query 요청도 계속 허용
+    query: str | None = Field(
+        default=None,
         min_length=2,
         description="사용자 증상 또는 상태 입력",
         examples=["숨이 안 쉬어져요"],
     )
 
+    # 프론트 multi-field 요청 지원
+    symptoms: list[str] = Field(default_factory=list, description="증상 목록")
+    duration: str | None = Field(default=None, description="지속 기간")
+    severity: int | None = Field(default=None, ge=1, le=10, description="중증도 1-10")
+    age: int | None = Field(default=None, ge=0, description="나이")
+    additional_info: str | None = Field(default=None, description="추가 정보")
+
+
+class TriagePattern(BaseModel):
+    pattern_id: str
+    pattern_name: str
+    confidence: float
+    description: str
+
 
 class TriageResponse(BaseModel):
+    # 기존 백엔드 필드 유지
     query: str
     detected_language: str
     triage_level: str
     triage_message: str
     triage_score: int
-    matched_patterns: list[str]
+
+    # 프론트 호환 구조 확장
+    matched_patterns: list[TriagePattern] = Field(default_factory=list)
+    recommendations: list[str] = Field(default_factory=list)
+    follow_up_questions: list[str] = Field(default_factory=list)
+    disclaimer: str = "This triage tool provides general guidance only and is not medical advice."
 
 
 class PublicUser(BaseModel):
