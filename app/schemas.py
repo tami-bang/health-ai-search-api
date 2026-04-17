@@ -102,6 +102,32 @@ class TriagePattern(BaseModel):
     description: str
 
 
+class TriageMatchedRule(BaseModel):
+    group_name: str
+    pattern: str
+    score: int
+    source_language: str | None = None
+
+
+class TriageRiskFactor(BaseModel):
+    factor_id: str
+    label: str
+    score: int
+    category: str
+
+
+class TriageScoreBreakdown(BaseModel):
+    base_score: int = 0
+    adjustment_score: int = 0
+    total_score: int = 0
+
+
+class TriageGuidanceMeta(BaseModel):
+    emergency: bool = False
+    urgent: bool = False
+    display_level: str | None = None
+
+
 class TriageResponse(BaseModel):
     # 기존 백엔드 필드 유지
     query: str
@@ -115,6 +141,22 @@ class TriageResponse(BaseModel):
     recommendations: list[str] = Field(default_factory=list)
     follow_up_questions: list[str] = Field(default_factory=list)
     disclaimer: str = "This triage tool provides general guidance only and is not medical advice."
+
+    # 백엔드 고도화 + 프론트 확장 필드
+    matched_rule_names: list[str] = Field(default_factory=list)
+    matched_rule_details: list[TriageMatchedRule] = Field(default_factory=list)
+    risk_factors: list[TriageRiskFactor] = Field(default_factory=list)
+    score_breakdown: TriageScoreBreakdown | None = None
+    guidance_meta: TriageGuidanceMeta | None = None
+
+    # 요청 컨텍스트 반영 필드
+    duration: str | None = None
+    severity: int | None = None
+    age: int | None = None
+    additional_info: str | None = None
+
+    # 디버그/확장 포인트
+    debug: dict[str, Any] | None = None
 
 
 class PublicUser(BaseModel):

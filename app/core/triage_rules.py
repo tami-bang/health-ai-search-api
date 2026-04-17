@@ -1,4 +1,3 @@
-# app/core/triage_rules.py
 from __future__ import annotations  # 용도: 최신 타입 힌트 문법 지원
 
 TRIAGE_LEVEL_RED = "red"  # 용도: red 레벨 상수
@@ -135,6 +134,18 @@ TRIAGE_RULE_GROUPS: dict[str, dict[str, list[dict[str, object]]]] = {
             {"pattern": "시야가 흐려", "score": 3},
             {"pattern": "눈부심", "score": 2},
         ],
+        "ent_warning": [
+            {"pattern": "콧물", "score": 1},
+            {"pattern": "콧물이", "score": 1},
+            {"pattern": "코막힘", "score": 1},
+            {"pattern": "코가 막혀", "score": 1},
+            {"pattern": "코가 꽉", "score": 1},
+            {"pattern": "부비동", "score": 1},
+            {"pattern": "축농증", "score": 1},
+            {"pattern": "얼굴 압박", "score": 1},
+            {"pattern": "머리가 아파", "score": 1},
+            {"pattern": "두통", "score": 1},
+        ],
         "progression_warning": [
             {"pattern": "악화", "score": 2},
             {"pattern": "심해지", "score": 2},
@@ -211,6 +222,14 @@ TRIAGE_RULE_GROUPS: dict[str, dict[str, list[dict[str, object]]]] = {
             {"pattern": "eye pain", "score": 2},
             {"pattern": "blurred vision", "score": 3},
             {"pattern": "light sensitivity", "score": 2},
+        ],
+        "ent_warning": [
+            {"pattern": "runny nose", "score": 1},
+            {"pattern": "nasal congestion", "score": 1},
+            {"pattern": "stuffy nose", "score": 1},
+            {"pattern": "sinus pressure", "score": 1},
+            {"pattern": "sinus pain", "score": 1},
+            {"pattern": "headache", "score": 1},
         ],
         "progression_warning": [
             {"pattern": "getting worse", "score": 2},
